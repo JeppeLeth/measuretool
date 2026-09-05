@@ -94,7 +94,7 @@ Three dropdown menus, left-aligned. "Measure Tool" brand name right-aligned via 
 Open image (`#imageLoader`), Save project, Load project (`#projectLoader`), separator, Export PNG/JPG/PDF
 
 ### Language
-44 language items calling `selectLang(code)`. Active language highlighted with `lang-item--active` class (checkmark via CSS `::before`). Trigger label always reads "Language".
+44 language items calling `selectLang(code)`, sorted alphabetically by endonym (Latin scripts A–Z, then non-Latin grouped by script). Active language highlighted with `lang-item--active` class (checkmark via CSS `::before`). Trigger label always reads "Language". The hidden `#langSelect` order is irrelevant (used only for JS value sync).
 
 ### About
 - Measure Tool → opens `#aboutModal` (translated h1, description, badges)
@@ -110,8 +110,9 @@ Open image (`#imageLoader`), Save project, Load project (`#projectLoader`), sepa
 - `window.translations`: shared mutable object used throughout all app JS — mutated in place by `applyLanguage()`
 - English (`EN`) is inlined in the HTML so it is available immediately on parse, before the fetch completes
 - `applyLanguage(code)`: mutates `translations`, sets `document.title`, `lang`, `dir` (RTL for ar/ur/fa/he), walks `[data-i18n]` and `[data-i18n-attr]` elements, calls `syncLangMenu(code)`, reloads initial SVG, calls `updateUI()`
+- URL query param `?lang=<code>`: `getInitialLang()` reads it on load (validated against `SUPPORTED_LANGS`, falls back to `en`); applied after `translations.json` loads. `selectLang(code)` calls `updateLangParam(code)` which does `history.replaceState` — sets `?lang=` for non-English, removes it for English. Lets users share a URL that opens in the same language.
 - `syncLangMenu(code)`: updates `.lang-item--active` class; trigger label stays "Language"
-- Translation keys: 97 per language — JS object keys (svgTitle, instr1–6, showTable, hideTable, etc.) plus HTML UI strings (labelUpload, labelScaleUnits, addTextBtn, etc.) plus `labelPointer`, plus clip keys `clipBtn` (button label) and `titleClip` (tooltip), plus 9 pdf* keys (pdfConsentTitle, pdfConsentBody, pdfConsentDontAsk, pdfConsentCancel, pdfConsentContinue, pdfPageTitle, pdfPageLabel, pdfPageOpen, pdfLoadError). `svgTitle` is "Area Measure Tool" in all languages (not localized). The Clip button uses `data-i18n="clipBtn"` on its label and `data-i18n-attr="title:titleClip"` on the button. `pdfPageLabel` contains a `{n}` placeholder replaced at runtime via `.replace('{n}', n)` — the first interpolated translation string in the project.
+- Translation keys: 97 per language — JS object keys (svgTitle, instr1–6, showTable, hideTable, etc.) plus HTML UI strings (labelUpload, labelScaleUnits, addTextBtn, etc.) plus `labelPointer`, plus clip keys `clipBtn` (button label) and `titleClip` (tooltip), plus 9 pdf* keys (pdfConsentTitle, pdfConsentBody, pdfConsentDontAsk, pdfConsentCancel, pdfConsentContinue, pdfPageTitle, pdfPageLabel, pdfPageOpen, pdfLoadError). `svgTitle` is "Area Measure Tool" localized per language (e.g. de "Flächenmesswerkzeug", ja "面積測定ツール"). The Clip button uses `data-i18n="clipBtn"` on its label and `data-i18n-attr="title:titleClip"` on the button. `pdfPageLabel` contains a `{n}` placeholder replaced at runtime via `.replace('{n}', n)` — the first interpolated translation string in the project.
 
 ## Core data model
 

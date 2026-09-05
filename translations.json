@@ -99,7 +99,7 @@
     "titleClip": "Clip export area — drag corners to set the region to export"
   },
   "es": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Herramienta de medición de áreas",
     "svgSub": "(Sube un plano, mapa, foto o PDF)",
     "svgInstr": "GUÍA DE INICIO:",
     "instr1": "Dibuje una línea de ESCALA roja sobre una distancia conocida para calibrar.",
@@ -198,7 +198,7 @@
     "titleClip": "Recortar área de exportación — arrastra las esquinas para definir la región"
   },
   "fr": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Outil de mesure de surface",
     "svgSub": "(Importer un plan, une photo ou un PDF)",
     "svgInstr": "COMMENCER :",
     "instr1": "Tracez une ligne d’ÉCHELLE rouge sur une distance connue pour calibrer.",
@@ -297,7 +297,7 @@
     "titleClip": "Zone d’exportation — faites glisser les coins pour définir la région"
   },
   "de": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Flächenmesswerkzeug",
     "svgSub": "(Grundriss, Foto oder PDF hochladen)",
     "svgInstr": "ERSTE SCHRITTE:",
     "instr1": "Ziehen Sie eine rote MAẞSTAB-Linie über eine bekannte Distanz zum Kalibrieren.",
@@ -396,7 +396,7 @@
     "titleClip": "Exportbereich zuschneiden — Ecken ziehen, um den Bereich festzulegen"
   },
   "pt": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Ferramenta de medição de área",
     "svgSub": "(Carregue uma planta, foto ou PDF)",
     "svgInstr": "COMEÇANDO:",
     "instr1": "Desenhe uma linha de ESCALA vermelha sobre uma distância conhecida para calibrar.",
@@ -495,7 +495,7 @@
     "titleClip": "Recortar área de exportação — arraste os cantos para definir a região"
   },
   "it": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Strumento di misurazione area",
     "svgSub": "(Carica una pianta, una foto o un PDF)",
     "svgInstr": "PER INIZIARE:",
     "instr1": "Disegna una linea di SCALA rossa su una distanza nota per calibrare.",
@@ -594,7 +594,7 @@
     "titleClip": "Area di esportazione — trascina gli angoli per definire la regione"
   },
   "zh": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "面积测量工具",
     "svgSub": "（上传平面图、照片或 PDF）",
     "svgInstr": "开始使用：",
     "instr1": "在已知距离上画一条红色比例线进行校准。",
@@ -693,7 +693,7 @@
     "titleClip": "裁剪导出区域 — 拖动角点以设置导出范围"
   },
   "lt": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Ploto matavimo įrankis",
     "svgSub": "(Įkelkite planą, nuotrauką arba PDF)",
     "svgInstr": "NAUDOJIMO INSTRUKCIJA:",
     "instr1": "Nubrėžkite raudoną ETALONO liniją ant žinomo atstumo masteliui nustatyti.",
@@ -792,7 +792,7 @@
     "titleClip": "Eksporto sritis — tempkite kampus, kad nustatytumėte regioną"
   },
   "pl": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Narzędzie do pomiaru powierzchni",
     "svgSub": "(Prześlij plan, zdjęcie lub PDF)",
     "svgInstr": "INSTRUKCJA STARTOWA:",
     "instr1": "Narysuj czerwoną linię SKALI nad znaną odległością, aby skalibrować.",
@@ -891,7 +891,7 @@
     "titleClip": "Obszar eksportu — przeciągnij narożniki, aby ustawić region"
   },
   "ru": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Инструмент измерения площади",
     "svgSub": "(Загрузите план, фото или PDF)",
     "svgInstr": "ИНСТРУКЦИЯ:",
     "instr1": "Нарисуйте красную ЭТАЛОННУЮ линию на объекте с известным размером.",
@@ -990,7 +990,7 @@
     "titleClip": "Область экспорта — перетащите углы, чтобы задать регион"
   },
   "ja": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "面積測定ツール",
     "svgSub": "（設計図、写真、または PDF をアップロード）",
     "svgInstr": "使い方のヒント：",
     "instr1": "既知の距離の上に赤い基準線を引いて校正します。",
@@ -1089,7 +1089,7 @@
     "titleClip": "書き出し範囲 — 角をドラッグして領域を設定"
   },
   "ar": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "أداة قياس المساحة",
     "svgSub": "(ارفع مخططاً أو صورةً أو ملف PDF)",
     "svgInstr": "تعليمات البدء:",
     "instr1": "ارسم خط مقياس أحمر فوق مسافة معروفة للمعايرة.",
@@ -1188,7 +1188,7 @@
     "titleClip": "منطقة التصدير — اسحب الزوايا لتحديد المنطقة"
   },
   "hi": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "क्षेत्र माप उपकरण",
     "svgSub": "(ब्लूप्रिंट, फ़ोटो, या PDF अपलोड करें)",
     "svgInstr": "निर्देश:",
     "instr1": "कैलिब्रेट करने के लिए ज्ञात दूरी पर एक लाल स्केल रेखा खींचें।",
@@ -1287,7 +1287,7 @@
     "titleClip": "निर्यात क्षेत्र — क्षेत्र सेट करने के लिए कोनों को खींचें"
   },
   "ko": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "면적 측정 도구",
     "svgSub": "(도면, 사진 또는 PDF 업로드)",
     "svgInstr": "시작하기:",
     "instr1": "보정을 위해 알려진 거리 위에 빨간색 기준선을 그립니다.",
@@ -1386,7 +1386,7 @@
     "titleClip": "내보내기 영역 — 모서리를 드래그하여 영역 설정"
   },
   "vi": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Công cụ đo diện tích",
     "svgSub": "(Tải lên bản vẽ, ảnh hoặc PDF)",
     "svgInstr": "BẮT ĐẦU:",
     "instr1": "Vẽ một đường TỶ LỆ màu đỏ trên một khoảng cách đã biết để hiệu chỉnh.",
@@ -1485,7 +1485,7 @@
     "titleClip": "Vùng xuất — kéo các góc để đặt vùng xuất"
   },
   "tr": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Alan Ölçme Aracı",
     "svgSub": "(Plan, fotoğraf veya PDF yükleyin)",
     "svgInstr": "BAŞLARKEN:",
     "instr1": "Kalibre etmek için bilinen bir mesafe üzerine kırmızı bir ÖLÇEK çizgisi çizin.",
@@ -1584,7 +1584,7 @@
     "titleClip": "Dışa aktarma alanı — bölgeyi ayarlamak için köşeleri sürükleyin"
   },
   "nl": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Oppervlaktemeetgereedschap",
     "svgSub": "(Upload een plattegrond, foto of PDF)",
     "svgInstr": "AAN DE SLAG:",
     "instr1": "Teken een rode SCHAAL-lijn over een bekende afstand om te kalibreren.",
@@ -1683,7 +1683,7 @@
     "titleClip": "Exportgebied — sleep de hoeken om het gebied in te stellen"
   },
   "sv": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Ytmätningsverktyg",
     "svgSub": "(Ladda upp en ritning, ett foto eller en PDF)",
     "svgInstr": "KOM IGÅNG:",
     "instr1": "Dra en röd SKAL-linje över ett känt avstånd för att kalibrera.",
@@ -1782,7 +1782,7 @@
     "titleClip": "Exportområde — dra i hörnen för att ställa in området"
   },
   "id": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Alat Ukur Luas",
     "svgSub": "(Unggah denah, foto, atau PDF)",
     "svgInstr": "MEMULAI:",
     "instr1": "Gambar garis SKALA merah pada jarak yang diketahui untuk kalibrasi.",
@@ -1881,7 +1881,7 @@
     "titleClip": "Area ekspor — seret sudut untuk menetapkan wilayah"
   },
   "th": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "เครื่องมือวัดพื้นที่",
     "svgSub": "(อัปโหลดแบบแปลน รูปภาพ หรือ PDF)",
     "svgInstr": "เริ่มต้นใช้งาน:",
     "instr1": "ลากเส้นมาตราส่วนสีแดงบนระยะที่ทราบเพื่อตั้งค่าสเกล",
@@ -1980,7 +1980,7 @@
     "titleClip": "พื้นที่ส่งออก — ลากมุมเพื่อกำหนดพื้นที่"
   },
   "ro": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Instrument de măsurare a ariei",
     "svgSub": "(Încărcați un plan, o fotografie sau un PDF)",
     "svgInstr": "PRIMII PAȘI:",
     "instr1": "Trasează o linie de SCARĂ roșie peste o distanță cunoscută pentru calibrare.",
@@ -2079,7 +2079,7 @@
     "titleClip": "Zonă de export — trage colțurile pentru a seta regiunea"
   },
   "hu": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Területmérő eszköz",
     "svgSub": "(Tölts fel alaprajzot, fotót vagy PDF-et)",
     "svgInstr": "KEZDETI LÉPÉSEK:",
     "instr1": "Húzzon egy piros SKÁLA vonalat egy ismert távolságra a kalibráláshoz.",
@@ -2178,7 +2178,7 @@
     "titleClip": "Exportterület — húzd a sarkokat a terület beállításához"
   },
   "fi": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Pinta-alan mittaustyökalu",
     "svgSub": "(Lataa pohjapiirros, kuva tai PDF)",
     "svgInstr": "ALOITUSOPAS:",
     "instr1": "Piirrä punainen MITTAKAAVA-viiva tunnetun etäisyyden päälle kalibroidaksesi.",
@@ -2277,7 +2277,7 @@
     "titleClip": "Vientialue — vedä kulmista asettaaksesi alueen"
   },
   "bn": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "ক্ষেত্র পরিমাপ সরঞ্জাম",
     "svgSub": "(ব্লুপ্রিন্ট, ছবি বা PDF আপলোড করুন)",
     "svgInstr": "শুরু করা:",
     "instr1": "ক্যালিবেরট করার জন্য একটি পরিচিত দূরত্বের উপর একটি লাল স্কেল লাইন আঁকুন।",
@@ -2376,7 +2376,7 @@
     "titleClip": "রপ্তানি এলাকা — অঞ্চল নির্ধারণে কোণা টানুন"
   },
   "ur": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "رقبہ ماپنے کا آلہ",
     "svgSub": "(بلیو پرنٹ، تصویر، یا PDF اپ لوڈ کریں)",
     "svgInstr": "شروع کرنے کے لئے:",
     "instr1": "کیلیبریٹ کرنے کے لیے ایک معلوم فاصلے پر سرخ سکیل لائن کھینچیں۔",
@@ -2475,7 +2475,7 @@
     "titleClip": "برآمد کا علاقہ — خطہ مقرر کرنے کے لیے کونے کھینچیں"
   },
   "fa": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "ابزار اندازه‌گیری مساحت",
     "svgSub": "(نقشه، عکس یا PDF بارگذاری کنید)",
     "svgInstr": "شروع کار:",
     "instr1": "برای کالیبره کردن، یک خط مقیاس قرمز روی یک فاصله مشخص بکشید.",
@@ -2574,7 +2574,7 @@
     "titleClip": "ناحیهٔ خروجی — گوشه‌ها را بکشید تا ناحیه تعیین شود"
   },
   "sw": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Zana ya Kupima Eneo",
     "svgSub": "(Pakia mpango, picha, au PDF)",
     "svgInstr": "KUANZA:",
     "instr1": "Chora mstari mwekundu wa KIPIMO juu ya umbali unaojulikana ili kurekebisha.",
@@ -2673,7 +2673,7 @@
     "titleClip": "Eneo la kuhamisha — buruta pembe kuweka eneo"
   },
   "uk": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Інструмент вимірювання площі",
     "svgSub": "(Завантажте план, фото або PDF)",
     "svgInstr": "ПОЧАТОК РОБОТИ:",
     "instr1": "Намалюйте червону лінію МАСШТАБУ на відомій відстані для калібрування.",
@@ -2772,7 +2772,7 @@
     "titleClip": "Область експорту — перетягніть кути, щоб задати регіон"
   },
   "cs": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Nástroj pro měření plochy",
     "svgSub": "(Nahrajte plán, fotografii nebo PDF)",
     "svgInstr": "ZAČÍNÁME:",
     "instr1": "Nakreslete červenou čáru MĚŘÍTKA přes známou vzdálenost pro kalibraci.",
@@ -2871,7 +2871,7 @@
     "titleClip": "Oblast exportu — táhněte rohy pro nastavení oblasti"
   },
   "el": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Εργαλείο μέτρησης εμβαδού",
     "svgSub": "(Ανεβάστε κάτοψη, φωτογραφία ή PDF)",
     "svgInstr": "ΞΕΚΙΝΩΝΤΑΣ:",
     "instr1": "Σχεδιάστε μια κόκκινη γραμμή ΚΛΙΜΑΚΑΣ πάνω σε μια γνωστή απόσταση για βαθμονόμηση.",
@@ -2970,7 +2970,7 @@
     "titleClip": "Περιοχή εξαγωγής — σύρετε τις γωνίες για να ορίσετε την περιοχή"
   },
   "da": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Arealmålingsværktøj",
     "svgSub": "(Upload en plantegning, et foto eller en PDF)",
     "svgInstr": "KOM I GANG:",
     "instr1": "Tegn en rød SKALA-linje over en kendt afstand for at kalibrere.",
@@ -3069,7 +3069,7 @@
     "titleClip": "Eksportområde — træk i hjørnerne for at angive området"
   },
   "no": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Arealmålingsverktøy",
     "svgSub": "(Last opp en plantegning, et bilde eller en PDF)",
     "svgInstr": "KOM I GANG:",
     "instr1": "Tegn en rød SKALA-linje over en kjent avstand for å kalibrere.",
@@ -3168,7 +3168,7 @@
     "titleClip": "Eksportområde — dra i hjørnene for å angi området"
   },
   "bg": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Инструмент за измерване на площ",
     "svgSub": "(Качете план, снимка или PDF)",
     "svgInstr": "НАЧАЛО:",
     "instr1": "Начертайте червена линия за МАЩАБ върху известно разстояние, за да калибрирате.",
@@ -3267,7 +3267,7 @@
     "titleClip": "Област за експорт — плъзнете ъглите, за да зададете областта"
   },
   "mr": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "क्षेत्र मापन साधन",
     "svgSub": "(ब्लूप्रिंट, फोटो किंवा PDF अपलोड करा)",
     "svgInstr": "सुरुवात करणे:",
     "instr1": "कॅलिब्रेट करण्यासाठी ज्ञात अंतरावर लाल स्केल रेषा काढा.",
@@ -3366,7 +3366,7 @@
     "titleClip": "निर्यात क्षेत्र — क्षेत्र सेट करण्यासाठी कोपरे ओढा"
   },
   "te": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "వైశాల్య కొలత సాధనం",
     "svgSub": "(బ్లూప్రింట్, ఫోటో లేదా PDF అప్‌లోడ్ చేయండి)",
     "svgInstr": "ప్రారంభించడం:",
     "instr1": "కాలిబ్రేట్ చేయడానికి తెలిసిన దూరంపై ఎరుపు స్కేల్ గీతను గీయండి.",
@@ -3465,7 +3465,7 @@
     "titleClip": "ఎగుమతి ప్రాంతం — ప్రాంతాన్ని సెట్ చేయడానికి మూలలను లాగండి"
   },
   "ta": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "பரப்பளவு அளவீட்டு கருவி",
     "svgSub": "(வரைபடம், புகைப்படம் அல்லது PDF பதிவேற்றவும்)",
     "svgInstr": "தொடங்குதல்:",
     "instr1": "அளவீடு செய்ய அறியப்பட்ட தூரத்தின் மீது ஒரு சிவப்பு அளவுகோட்டுக் கோட்டை வரையவும்.",
@@ -3564,7 +3564,7 @@
     "titleClip": "ஏற்றுமதி பகுதி — பகுதியை அமைக்க மூலைகளை இழுக்கவும்"
   },
   "tl": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Kasangkapan sa Pagsukat ng Lawak",
     "svgSub": "(Mag-upload ng plano, larawan, o PDF)",
     "svgInstr": "PAGSISIMULA:",
     "instr1": "Gumuhit ng pulang SCALE line sa isang kilalang distansya para i-calibrate.",
@@ -3663,7 +3663,7 @@
     "titleClip": "Lugar ng pag-export — i-drag ang mga sulok para itakda ang rehiyon"
   },
   "jv": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Piranti Ngukur Jembar",
     "svgSub": "(Unggah rancangan, foto, utawa PDF)",
     "svgInstr": "Miwiti:",
     "instr1": "Gambar garis SKALA abang ing jarak sing dingerteni kanggo kalibrasi.",
@@ -3762,7 +3762,7 @@
     "titleClip": "Area ekspor — seret pojok kanggo nyetel wilayah"
   },
   "pa": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "ਖੇਤਰਫਲ ਮਾਪ ਸੰਦ",
     "svgSub": "(ਬਲੂਪ੍ਰਿੰਟ, ਫੋਟੋ, ਜਾਂ PDF ਅਪਲੋਡ ਕਰੋ)",
     "svgInstr": "ਸ਼ੁਰੂ ਕਰਨਾ:",
     "instr1": "ਕੈਲੀਬਰੇਟ ਕਰਨ ਲਈ ਇੱਕ ਜਾਣੀ-ਪਛਾਣੀ ਦੂਰੀ ਉੱਤੇ ਇੱਕ ਲਾਲ ਸਕੇਲ ਲਾਈਨ ਖਿੱਚੋ।",
@@ -3861,7 +3861,7 @@
     "titleClip": "ਨਿਰਯਾਤ ਖੇਤਰ — ਖੇਤਰ ਸੈੱਟ ਕਰਨ ਲਈ ਕੋਨੇ ਖਿੱਚੋ"
   },
   "kn": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "ವಿಸ್ತೀರ್ಣ ಅಳತೆ ಸಾಧನ",
     "svgSub": "(ನೀಲನಕ್ಷೆ, ಫೋಟೋ, ಅಥವಾ PDF ಅಪ್‌ಲೋಡ್ ಮಾಡಿ)",
     "svgInstr": "ಪ್ರಾರಂಭಿಸುವುದು:",
     "instr1": "ಮಾಪನಾಂಕ ನಿರ್ಣಯಿಸಲು ತಿಳಿದಿರುವ ದೂರದ ಮೇಲೆ ಕೆಂಪು ಸ್ಕೇಲ್ ರೇಖೆಯನ್ನು ಎಳೆಯಿರಿ.",
@@ -3960,7 +3960,7 @@
     "titleClip": "ರಫ್ತು ಪ್ರದೇಶ — ಪ್ರದೇಶ ಹೊಂದಿಸಲು ಮೂಲೆಗಳನ್ನು ಎಳೆಯಿರಿ"
   },
   "gu": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "ક્ષેત્રફળ માપ સાધન",
     "svgSub": "(બ્લૂપ્રિન્ટ, ફોટો, અથવા PDF અપલોડ કરો)",
     "svgInstr": "શરૂ કરી રહ્યા છીએ:",
     "instr1": "કેલિબ્રેટ કરવા માટે જાણીતા અંતર પર લાલ સ્કેલ રેખા દોરો.",
@@ -4059,7 +4059,7 @@
     "titleClip": "નિકાસ વિસ્તાર — વિસ્તાર સેટ કરવા ખૂણા ખેંચો"
   },
   "my": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "ဧရိယာတိုင်းတာကိရိယာ",
     "svgSub": "(ပုံကြမ်း၊ ဓာတ်ပုံ သို့မဟုတ် PDF တင်ပါ)",
     "svgInstr": "စတင်ခြင်း:",
     "instr1": "ချိန်ညှိရန် လူသိများသော အကွာအဝေးပေါ်တွင် အနီရောင် စကေးမျဉ်းကို ဆွဲပါ။",
@@ -4158,7 +4158,7 @@
     "titleClip": "တင်ပို့ဧရိယာ — ဧရိယာသတ်မှတ်ရန် ထောင့်များကို ဆွဲပါ"
   },
   "ha": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Kayan Aunar Fadi",
     "svgSub": "(Loda zane, hoto, ko PDF)",
     "svgInstr": "FARWA:",
     "instr1": "Zana jan layin SIKELI akan sanannen nisa don daidaitawa.",
@@ -4257,7 +4257,7 @@
     "titleClip": "Yankin fitarwa — ja kusurwoyi don saita yanki"
   },
   "eo": {
-    "svgTitle": "Area Measure Tool",
+    "svgTitle": "Areo-Mezurilo",
     "svgSub": "(Alŝutu planon, foton aŭ PDF)",
     "svgInstr": "KOMENCADO:",
     "instr1": "Desegnu ruĝan SKAL-linion super konata distanco por kalibri.",
