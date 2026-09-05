@@ -1,0 +1,3073 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Measure Tool</title>
+  <meta name="description" content="Take approximate real-world measurements from an image using an object with known size as scale. Quick, simple, and private – your file is processed in the browser without being uploaded. Also measure areas and angles, keep a measurement table, and save projects as JSON.">
+  <meta name="theme-color" content="#1e1e1e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #1e1e1e;
+      --menubar-bg: #2d2d2d;
+      --titlebar-bg: #252526;
+      --toolbar-bg: #2d2d2d;
+      --toolbar-border: #3c3c3c;
+      --group-bg: #383838;
+      --group-border: #4a4a4a;
+      --accent: #0e7aff;
+      --success: #28cd41;
+      --danger: #e84040;
+      --text: #cccccc;
+      --text-dim: #888888;
+      --text-bright: #ffffff;
+      --warning: #d4a017;
+      --border: #3c3c3c;
+      --dropdown-bg: #252526;
+      --dropdown-hover: #3a3a3a;
+      --dropdown-border: #555;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-color);
+      color: var(--text);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Menubar ── */
+    #menubar {
+      display: flex;
+      align-items: center;
+      height: 28px;
+      background: var(--menubar-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0 6px;
+      gap: 2px;
+      flex-shrink: 0;
+      z-index: 200;
+      position: relative;
+    }
+
+    .menu { position: relative; }
+
+    button.menu-trigger {
+      background: transparent;
+      color: var(--text);
+      border: none;
+      font-size: 13px;
+      padding: 2px 10px;
+      height: 22px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      transition: background 0.1s;
+    }
+    button.menu-trigger:hover,
+    button.menu-trigger.open {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 200px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: var(--dropdown-bg);
+      border: 1px solid var(--dropdown-border);
+      border-radius: 4px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      z-index: 1000;
+      padding: 4px 0;
+      list-style: none;
+      margin: 0;
+    }
+    .menu.open .menu-dropdown { display: block; }
+
+    .menu-item {
+      display: block;
+      width: 100%;
+      height: 30px;
+      padding: 3px 12px;
+      font-size: 12px;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      font-family: inherit;
+      font-weight: 400;
+    }
+.menu-item:hover {
+  background: var(--dropdown-hover);
+  color: var(--text-bright);
+}
+.lang-item--active {
+  color: var(--text-bright);
+  font-weight: 600;
+}
+.lang-item--active::before {
+  content: '✓ ';
+}
+
+    li.separator {
+      height: 1px;
+      background: var(--dropdown-border);
+      margin: 4px 0;
+      pointer-events: none;
+    }
+
+    /* ── Title bar ── */
+    #menubar .app-name {
+      margin-left: auto;
+      padding-right: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.2px;
+      user-select: none;
+    }
+
+    /* ── Main app container ── */
+    #main-app-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Mobile hint ── */
+    #mobile-hint {
+      display: none;
+      background: #1a2a3a;
+      border-bottom: 1px solid #007aff44;
+      color: #a0c8ff;
+      font-size: 11px;
+      padding: 5px 12px;
+      text-align: center;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+    @media (max-width: 768px) {
+      #mobile-hint { display: block; }
+      #canvas-container {
+        height: 65vw !important;
+        min-height: 260px !important;
+        max-height: 60vh !important;
+        flex: none !important;
+      }
+    }
+
+    /* ── Toolbar (ribbon) ── */
+    #toolbar {
+      background: var(--toolbar-bg);
+      border-bottom: 1px solid var(--toolbar-border);
+      z-index: 100;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      height: 58px;
+    }
+    #toolbar::-webkit-scrollbar { height: 3px; }
+    #toolbar::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+
+    /* Groups: flat, no background, separated by a thin border-right */
+    .group {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      padding: 0 8px;
+      gap: 2px;
+      flex-shrink: 0;
+      position: relative;
+      border-right: 1px solid var(--toolbar-border);
+    }
+    .group:last-child { border-right: none; }
+
+    /* Group label hidden — text moved to button title attrs */
+    label { display: none; }
+
+    .row { display: contents; }
+
+    .v-separator {
+      width: 1px;
+      height: 28px;
+      background: var(--border);
+      margin: 0 3px;
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    /* ── Buttons ── */
+    button {
+      background: transparent;
+      color: var(--text);
+      border: none;
+      padding: 4px 7px;
+      height: 44px;
+      min-width: 36px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 400;
+      font-size: 11px;
+      font-family: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      white-space: nowrap;
+      transition: background 0.12s;
+      position: relative;
+    }
+    /* Icon span inside toolbar buttons */
+    button .btn-icon {
+      font-size: 16px;
+      line-height: 1;
+      display: block;
+    }
+    /* Label span inside toolbar buttons */
+    button .btn-label,
+    .btn-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      line-height: 1;
+      display: block;
+    }
+    button:hover { background: rgba(255,255,255,0.07); }
+    button:active { background: rgba(255,255,255,0.12); }
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: none;
+    }
+    button.secondary:hover { background: rgba(255,255,255,0.07); }
+    /* Active mode: accent underline indicator */
+    button.active {
+      background: rgba(14,122,255,0.12);
+      color: var(--accent);
+    }
+    button.active::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 1px;
+    }
+    button.active .btn-label { color: var(--accent); }
+    button.delete-btn {
+      background: transparent;
+      color: var(--warning);
+      border: none;
+    }
+    button.delete-btn:hover { background: rgba(212,160,23,0.1); }
+    button.danger {
+      background: transparent;
+      color: var(--danger);
+      border: none;
+    }
+    button.danger:hover { background: rgba(232,64,64,0.1); }
+    button:disabled { opacity: 0.28; cursor: not-allowed; }
+    button:disabled:hover { background: transparent; }
+    /* Menu trigger buttons keep old flat style */
+    button.menu-trigger {
+      flex-direction: row;
+      height: 22px;
+      min-width: unset;
+      padding: 2px 10px;
+      font-size: 13px;
+      font-weight: 400;
+      gap: 0;
+      border-radius: 3px;
+      background: transparent;
+    }
+    button.menu-trigger:hover,
+    button.menu-trigger.open { background: var(--accent); color: #fff; }
+    button.menu-trigger.open .btn-label,
+    button.menu-trigger:hover .btn-label { color: #fff; }
+    /* Measurement panel buttons keep compact row style */
+    .measurement-panel-head button,
+    .measurement-actions button {
+      flex-direction: row;
+      height: 24px;
+      min-width: unset;
+      gap: 4px;
+      font-size: 11px;
+    }
+    .measurement-panel-head button .btn-icon,
+    .measurement-actions button .btn-icon { font-size: 12px; }
+    .measurement-panel-head button::after,
+    .measurement-actions button::after { display: none; }
+
+    /* ── Inputs ── */
+    input[type="number"],
+    input[type="text"],
+    select {
+      background: #1a1a1a;
+      border: 1px solid #555;
+      color: var(--text);
+      padding: 0 6px;
+      height: 26px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    select:focus { border-color: var(--accent); }
+
+    #imageLoader { font-size: 11px; color: var(--text-dim); width: 160px; }
+    #imageLoader::-webkit-file-upload-button {
+      padding: 3px 10px;
+      border-radius: 2px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 8px;
+      font-size: 11px;
+    }
+
+    /* ── Color swatches ── */
+    .color-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      background: #000;
+      border: 1px solid #777;
+      border-radius: 3px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .color-wrapper input[type="color"] {
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      border: none; padding: 0; margin: 0;
+      cursor: pointer;
+    }
+
+    /* ── Canvas ── */
+    #canvas-container {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      background: #141414;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: radial-gradient(#2a2a2a 1px, transparent 1px);
+      background-size: 20px 20px;
+      min-height: 0;
+    }
+    #imageCanvas { position: absolute; top: 0; left: 0; touch-action: none; }
+
+    /* ── Drop zone ── */
+    #drop-zone {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 50; pointer-events: none;
+      transition: background 0.2s;
+    }
+    #drop-zone.active { background: rgba(14,122,255,0.15); pointer-events: all; }
+    .drop-box {
+      width: 80%; max-width: 380px; padding: 36px;
+      border: 2px dashed rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: rgba(30,30,30,0.75);
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      pointer-events: auto; cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: border-color 0.2s;
+    }
+    .drop-box:hover { border-color: var(--accent); }
+    .drop-box .icon { font-size: 36px; margin-bottom: 12px; }
+    .drop-box h2 { font-size: 15px; margin: 0 0 6px; color: var(--text-bright); }
+    .drop-box p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
+    /* ── Temp text input ── */
+    #tempTextInput {
+      position: absolute;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      border: 1px solid var(--accent);
+      padding: 6px 8px;
+      border-radius: 3px;
+      z-index: 1000;
+      min-width: 100px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      transform: translate(-50%, -100%);
+    }
+
+    /* ── Mode indicator ── */
+    #mode-indicator {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.7); color: #fff; padding: 5px 12px;
+      border-radius: 20px; font-size: 12px; pointer-events: none;
+      z-index: 50; opacity: 0; transition: opacity 0.3s;
+      white-space: nowrap; border: 1px solid rgba(255,255,255,0.15);
+    }
+    #mode-indicator.visible { opacity: 1; }
+
+    /* ── About, Help, and PDF modals ── */
+    #aboutModal, #helpModal, #pdfConsentModal, #pdfPageModal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75); z-index: 2000;
+      justify-content: center; align-items: center;
+      padding: 20px; backdrop-filter: blur(4px);
+    }
+    .modal-content {
+      background: #252526; padding: 24px; border-radius: 6px;
+      max-width: 580px; width: 100%; border: 1px solid #444;
+      position: relative; box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      color: var(--text);
+    }
+    .close-modal {
+      position: absolute; top: 12px; right: 12px;
+      background: #3a3a3a; width: 26px; height: 26px; border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-dim); font-size: 14px;
+      border: 1px solid #555;
+    }
+    .close-modal:hover { background: #555; color: var(--text-bright); }
+    .modal-content button.primary {
+      background: var(--accent); color: #fff; height: 30px;
+      font-size: 12px; padding: 0 14px; border-radius: 4px;
+    }
+    .modal-content button.primary:hover { background: #0a68d8; }
+
+    /* ── Measurement panel ── */
+    #measurement-panel {
+      position: absolute; right: 10px; top: 10px; bottom: 10px;
+      width: min(420px, 38vw); min-width: 300px;
+      background: rgba(37,37,38,0.96);
+      border: 1px solid var(--border); border-radius: 6px;
+      z-index: 55; display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    }
+    #measurement-panel.collapsed { display: none; }
+    .measurement-panel-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
+      background: #2d2d2d;
+    }
+    .measurement-panel-actions { display: flex; align-items: center; gap: 4px; }
+    .measurement-panel-head strong { font-size: 13px; color: var(--text-bright); }
+    .measurement-panel-head button { height: 24px; padding: 0 8px; font-size: 11px; }
+    .measurement-table-wrap { overflow: auto; min-height: 0; flex: 1; }
+    #measurementTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #measurementTable th, #measurementTable td {
+      padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      text-align: left; vertical-align: middle;
+    }
+    #measurementTable th {
+      color: var(--text-dim); font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.5px; position: sticky; top: 0;
+      background: #2d2d2d; z-index: 1; font-weight: 600;
+    }
+    #measurementTable input {
+      width: 100%; height: 24px; font-size: 11px; padding: 0 5px;
+    }
+    #measurementTable .selected-row { background: rgba(14,122,255,0.12); }
+    .measurement-actions { display: flex; gap: 4px; justify-content: flex-end; }
+    .measurement-actions button { height: 24px; padding: 0 7px; font-size: 11px; }
+    .empty-measurements { color: var(--text-dim); text-align: center !important; padding: 16px 10px !important; }
+    @media (max-width: 900px) {
+      #measurement-panel {
+        position: absolute; left: 0; right: 0; top: auto; bottom: 0; width: 100%;
+        min-width: 0; max-height: 45%; border-radius: 0;
+        border-left: none; border-right: none;
+      }
+    }
+
+    /* ── Small screen toolbar ── */
+    @media (max-width: 600px) {
+      #toolbar { padding: 4px 5px; gap: 4px; }
+      .group { padding: 4px 6px; height: 60px; }
+      button span { display: none; }
+      input[type="number"] { width: 54px !important; }
+      input[type="text"] { width: 44px !important; }
+      .drop-box {
+        max-width: 200px !important; padding: 16px !important;
+      }
+      .drop-box .icon { font-size: 22px !important; margin-bottom: 4px !important; }
+      .drop-box h2 { font-size: 12px !important; margin: 0; }
+      .drop-box p { display: none; }
+    }
+
+    .seo-h1 { position: absolute; left: -9999px; }
+  
+    /* ── Context menu ── */
+    #ctx-menu {
+      display: none;
+      position: fixed;
+      z-index: 3000;
+      background: var(--dropdown-bg, #252526);
+      border: 1px solid var(--dropdown-border, #555);
+      border-radius: 4px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      padding: 4px 0;
+      min-width: 160px;
+      user-select: none;
+    }
+    #ctx-menu.visible { display: block; }
+    .ctx-item {
+      display: block;
+      width: 100%;
+      height: 30px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--text, #ccc);
+      background: transparent;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .ctx-item:hover { background: var(--dropdown-hover, #3a3a3a); color: var(--text-bright, #fff); }
+    .ctx-item:disabled { opacity: 0.35; cursor: not-allowed; }
+    .ctx-item:disabled:hover { background: transparent; color: var(--text, #ccc); }
+    .ctx-item.danger { color: var(--danger, #e84040); }
+    .ctx-item.danger:hover { background: rgba(232,64,64,0.12); }
+    .ctx-separator { height: 1px; background: var(--dropdown-border, #555); margin: 4px 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+
+<div id="ctx-menu">
+  <!-- populated dynamically -->
+</div>
+
+<nav id="menubar">
+
+  <!-- File menu -->
+  <div class="menu" id="menu-file">
+    <button class="menu-trigger" onclick="toggleMenu('menu-file')">File</button>
+    <ul class="menu-dropdown">
+      <li><button class="menu-item" onclick="closeMenus();document.getElementById('imageLoader').click()">Open file</button></li>
+      <li><button class="menu-item" onclick="closeMenus();saveProject()">Save project</button></li>
+      <li><button class="menu-item" onclick="closeMenus();document.getElementById('projectLoader').click()">Load project</button></li>
+      <li class="separator"></li>
+      <li><button class="menu-item" onclick="closeMenus();exportFile('png')">Export PNG</button></li>
+      <li><button class="menu-item" onclick="closeMenus();exportFile('jpg')">Export JPG</button></li>
+      <li><button class="menu-item" onclick="closeMenus();exportFile('pdf')">Export PDF</button></li>
+    </ul>
+  </div>
+
+  <!-- Language menu -->
+  <div class="menu" id="menu-language">
+    <button class="menu-trigger" id="langMenuTrigger" onclick="toggleMenu('menu-language')">Language</button>
+    <ul class="menu-dropdown" id="langMenuList">
+      <li><button class="menu-item lang-item" onclick="selectLang('en')">English</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('es')">Español</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('fr')">Français</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('de')">Deutsch</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('pt')">Português</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('it')">Italiano</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('zh')">中文 (Chinese)</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('lt')">Lietuvių</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('pl')">Polski</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ru')">Русский</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ja')">日本語</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ar')">العربية</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('hi')">हिन्दी</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ko')">한국어</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('vi')">Tiếng Việt</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('tr')">Türkçe</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('nl')">Nederlands</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('sv')">Svenska</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('id')">Bahasa Indonesia</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('th')">ไทย</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ro')">Română</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('hu')">Magyar</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('fi')">Suomi</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('bn')">বাংলা</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ur')">اردو</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('fa')">فارسی</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('sw')">Kiswahili</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('uk')">Українська</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('cs')">Čeština</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('el')">Ελληνικά</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('da')">Dansk</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('no')">Norsk</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('bg')">Български</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('mr')">मराठी</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('te')">తెలుగు</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ta')">தமிழ்</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('tl')">Filipino</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('jv')">Basa Jawa</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('pa')">ਪੰਜਾਬੀ</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('kn')">ಕನ್ನಡ</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('gu')">ગુજરાતી</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('my')">မြန်မာ</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('ha')">Hausa</button></li>
+      <li><button class="menu-item lang-item" onclick="selectLang('eo')">Esperanto</button></li>
+    </ul>
+  </div>
+
+  <!-- About menu -->
+  <div class="menu" id="menu-about">
+    <button class="menu-trigger" onclick="toggleMenu('menu-about')">About</button>
+    <ul class="menu-dropdown">
+      <li><button class="menu-item" onclick="closeMenus();toggleAbout()">Measure Tool</button></li>
+      <li class="separator"></li>
+      <li><a class="menu-item" href="https://jeppeleth.com" target="_blank" rel="noopener">About the author</a></li>
+      <li><a class="menu-item" href="https://github.com/PLACEHOLDER" target="_blank" rel="noopener">GitHub</a></li>
+      <li class="separator"></li>
+      <li><button class="menu-item" onclick="closeMenus();toggleHelp()">Keyboard shortcuts &amp; Help</button></li>
+    </ul>
+  </div>
+
+  <span class="app-name">Measure Tool</span>
+
+</nav>
+
+<div id="main-app-container">
+
+  <h1 class="seo-h1">Professional Online Image Measurement &amp; Scaling Tool</h1>
+
+  <div id="mobile-hint" data-i18n="mobileHint">
+    &#x1F4D0; Draw a red SCALE line over a known distance to calibrate. &nbsp;|&nbsp; Mobile: One finger to draw. Two fingers to pan and zoom simultaneously.
+  </div>
+
+  <select id="langSelect" style="display:none">
+    <option value="en" selected>English</option>
+    <option value="es">Español</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="pt">Português</option>
+    <option value="it">Italiano</option>
+    <option value="zh">中文 (Chinese)</option>
+    <option value="lt">Lietuvių</option>
+    <option value="pl">Polski</option>
+    <option value="ru">Русский</option>
+    <option value="ja">日本語</option>
+    <option value="ar">العربية</option>
+    <option value="hi">हिन्दी</option>
+    <option value="ko">한국어</option>
+    <option value="vi">Tiếng Việt</option>
+    <option value="tr">Türkçe</option>
+    <option value="nl">Nederlands</option>
+    <option value="sv">Svenska</option>
+    <option value="id">Bahasa Indonesia</option>
+    <option value="th">ไทย</option>
+    <option value="ro">Română</option>
+    <option value="hu">Magyar</option>
+    <option value="fi">Suomi</option>
+    <option value="bn">বাংলা</option>
+    <option value="ur">اردو</option>
+    <option value="fa">فارسی</option>
+    <option value="sw">Kiswahili</option>
+    <option value="uk">Українська</option>
+    <option value="cs">Čeština</option>
+    <option value="el">Ελληνικά</option>
+    <option value="da">Dansk</option>
+    <option value="no">Norsk</option>
+    <option value="bg">Български</option>
+    <option value="mr">मराठी</option>
+    <option value="te">తెలుగు</option>
+    <option value="ta">தமிழ்</option>
+    <option value="tl">Filipino</option>
+    <option value="jv">Basa Jawa</option>
+    <option value="pa">ਪੰਜਾਬੀ</option>
+    <option value="kn">ಕನ್ನಡ</option>
+    <option value="gu">ગુજરાતી</option>
+    <option value="my">မြန်မာ</option>
+    <option value="ha">Hausa</option>
+    <option value="eo">Esperanto</option>
+  </select>
+
+  <div id="toolbar">
+
+    <input type="file" id="imageLoader" accept="image/*,.pdf,application/pdf" style="display:none">
+    <input type="file" id="projectLoader" accept="application/json,.json" style="display:none">
+
+    <!-- Pointer -->
+    <div class="group">
+      <label>Pointer</label>
+      <div class="row">
+        <button id="pointerModeBtn" class="secondary" onclick="togglePointerMode()" title="Pointer mode — click and drag to pan">
+          <span class="btn-icon">&#x1F5B1;&#xFE0F;</span>
+          <span class="btn-label" data-i18n="labelPointer">Pan</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Viewport -->
+    <div class="group">
+      <label>Viewport</label>
+      <div class="row">
+        <button class="secondary" onclick="changeZoom(1.2)" title="Zoom in">
+          <span class="btn-icon">+</span>
+          <span class="btn-label">In</span>
+        </button>
+        <button class="secondary" onclick="changeZoom(0.8)" title="Zoom out">
+          <span class="btn-icon">−</span>
+          <span class="btn-label">Out</span>
+        </button>
+        <button class="secondary" onclick="setZoomOriginal()" data-i18n-attr="title:titleZoomOriginal" title="Original size">
+          <span class="btn-icon">⊡</span>
+          <span class="btn-label">1:1</span>
+        </button>
+        <button onclick="fitToScreen()" title="Fit to window">
+          <span class="btn-icon">⤢</span>
+          <span class="btn-label" data-i18n="fitBtn">Fit</span>
+        </button>
+        <button id="clipBtn" class="secondary" onclick="toggleClipMode()" data-i18n-attr="title:titleClip" title="Clip export area — drag corners to set the region to export">
+          <span class="btn-icon">⛶</span>
+          <span class="btn-label" data-i18n="clipBtn">Clip</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="group">
+      <label>History</label>
+      <div class="row">
+        <button id="undoBtn" class="secondary" onclick="performUndo()" disabled title="Undo (Ctrl+Z)">
+          <span class="btn-icon">&#x21A9;</span>
+          <span class="btn-label">Undo</span>
+        </button>
+        <button id="redoBtn" class="secondary" onclick="performRedo()" disabled title="Redo (Ctrl+Shift+Z)">
+          <span class="btn-icon">&#x21AA;</span>
+          <span class="btn-label">Redo</span>
+        </button>
+        <button class="danger" onclick="resetAll()" title="Clear all measurements">
+          <span class="btn-icon">&#x2715;</span>
+          <span class="btn-label" data-i18n="resetBtn">Reset</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Delete -->
+    <div class="group">
+      <label>Delete</label>
+      <div class="row">
+        <button id="deleteBtn" class="delete-btn" onclick="deleteSelected()" data-i18n-attr="title:titleDelete" disabled>
+          <span class="btn-icon">&#x1F5D1;&#xFE0F;</span>
+          <span class="btn-label">Delete</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Line style -->
+    <div class="group">
+      <label>Line</label>
+      <div class="row">
+        <div class="color-wrapper" data-i18n-attr="title:titleLineColor" title="Line color">
+          <input type="color" id="lineColor" value="#000000">
+        </div>
+        <select id="lineWidth" style="width: 46px;" data-i18n-attr="title:titleLineWidth" title="Line width">
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="4">4</option>
+          <option value="8">8</option>
+          <option value="12">12</option>
+        </select>
+        <button id="customLineBtn" class="secondary" onclick="toggleCustomLineMode()" data-i18n-attr="title:titleCustomLine" title="Plain line — no measurement">
+          <span class="btn-icon">&#x2500;</span>
+          <span class="btn-label" data-i18n="customLineBtn">Plain</span>
+        </button>
+        <div class="v-separator"></div>
+        <div class="color-wrapper" data-i18n-attr="title:titleLineTextColor" title="Label color">
+          <input type="color" id="lineTextColor" value="#ffffff">
+        </div>
+        <select id="lineTextSize" style="width: 50px;" data-i18n-attr="title:titleLineTextSize" title="Label size">
+          <option value="8">XS</option>
+          <option value="16">S</option>
+          <option value="24" selected>M</option>
+          <option value="36">L</option>
+          <option value="48">XL</option>
+        </select>
+        <div class="v-separator"></div>
+        <select id="capType" style="width: 46px;" title="Line cap style">
+          <option value="none">&#x2500;</option>
+          <option value="arrow">&#x2194;</option>
+          <option value="tshape" selected>&#x2523;&#x2529;</option>
+          <option value="circle">&#x25CF;</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Add Custom Text -->
+    <div class="group">
+      <label>Text</label>
+      <div class="row">
+        <div class="color-wrapper" data-i18n-attr="title:titleCustomText" title="Text color">
+          <input type="color" id="textColor" value="#ffff00">
+        </div>
+        <select id="textSize" style="width: 50px;" data-i18n-attr="title:titleCustomTextSize" title="Text size">
+          <option value="10">XS</option>
+          <option value="20">S</option>
+          <option value="32" selected>M</option>
+          <option value="48">L</option>
+          <option value="72">XL</option>
+        </select>
+        <button id="addTextBtn" class="secondary" onclick="toggleTextMode()" title="Add custom text">
+          <span class="btn-icon">&#x270D;&#xFE0F;</span>
+          <span class="btn-label" data-i18n="addTextBtn">Text</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Advanced -->
+    <div class="group">
+      <label>Measure</label>
+      <div class="row">
+        <button id="areaBtn" class="secondary" onclick="toggleAreaMode()" title="Area measurement">
+          <span class="btn-icon">&#x25A1;</span>
+          <span class="btn-label" data-i18n="areaBtn">Area</span>
+        </button>
+        <button id="finishAreaBtn" class="secondary" onclick="finishArea()" disabled title="Finish area polygon">
+          <span class="btn-icon">&#x2713;</span>
+          <span class="btn-label" data-i18n="finishAreaBtn">Finish</span>
+        </button>
+        <button id="angleBtn" class="secondary" onclick="toggleAngleMode()" title="Angle measurement">
+          <span class="btn-icon">&#x2220;</span>
+          <span class="btn-label" data-i18n="angleBtn">Angle</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Scale & Units -->
+    <div class="group">
+      <div style="display:flex;flex-direction:row;align-items:center;gap:6px;">
+        <span class="btn-icon" data-i18n-attr="title:labelScaleUnits" title="Scale &amp; Units" style="cursor:default;">&#x1F4D0;</span>
+        <input type="number" id="knownValue" value="1.0" step="0.1" style="width: 66px;" title="Known measurement value">
+        <input type="text" id="unitName" value="m" style="width: 46px;" title="Unit name">
+      </div>
+    </div>
+
+    <!-- Table toggle -->
+    <div class="group">
+      <label>Table</label>
+      <div class="row">
+        <button id="measurementsToggleBtn" class="secondary" onclick="toggleMeasurementPanel()" title="Show/hide measurements table">
+          <span class="btn-icon">&#x1F4CA;</span>
+          <span class="btn-label" data-i18n="measurementsToggleBtn">Table</span>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- #toolbar -->
+
+  <div id="canvas-container">
+    <div id="mode-indicator" data-i18n="modeIndicator">1 Finger: Draw &bull; 2 Fingers: Pan/Zoom</div>
+    <div id="drop-zone">
+      <div class="drop-box" onclick="document.getElementById('imageLoader').click()">
+        <div class="icon">&#x1F4C1;</div>
+        <h2 data-i18n="dropTitle">UPLOAD YOUR FILE</h2>
+        <p data-i18n="dropSubtitle">Drag and drop file here or use the button above</p>
+      </div>
+    </div>
+    <canvas id="imageCanvas"></canvas>
+    <aside id="measurement-panel" class="collapsed">
+      <div class="measurement-panel-head">
+        <strong data-i18n="panelTitle">Measurements</strong>
+        <div class="measurement-panel-actions">
+          <button class="secondary" onclick="exportMeasurementsCsv()" data-i18n="csvBtn">CSV</button>
+          <button class="secondary" onclick="toggleMeasurementPanel(false)" data-i18n="hideBtn">Hide</button>
+        </div>
+      </div>
+      <div class="measurement-table-wrap">
+        <table id="measurementTable">
+          <thead>
+            <tr>
+              <th data-i18n="thName">Name</th>
+              <th data-i18n="thType">Type</th>
+              <th data-i18n="thValue">Value</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="measurementTableBody"></tbody>
+        </table>
+      </div>
+    </aside>
+  </div><!-- #canvas-container -->
+
+  <div id="helpModal">
+    <div class="modal-content">
+      <div class="close-modal" onclick="toggleHelp()">&#x2715;</div>
+      <h2 data-i18n="helpTitle">&#x1F4D0; How to use</h2>
+      <ul style="line-height: 1.6; padding-left: 20px;">
+        <li data-i18n="helpLi1">Draw a red SCALE line over a known distance to calibrate.</li>
+        <li data-i18n="helpLi2">Draw other lines over objects - the system will calculate lengths.</li>
+        <li data-i18n="helpLi3">Double-click any label to edit its value.</li>
+        <li data-i18n="helpLi4">Select an element and press DEL if you want to remove it.</li>
+        <div style="text-align: center">- - - - - - - - - -</div>
+        <li data-i18n="helpLi5">Use Area mode to draw a closed shape and calculate surface area.</li>
+        <li data-i18n="helpLi6">Use Angle mode on two connected lines to measure the angle between them.</li>
+        <li data-i18n="helpLi7">Save or load a project as JSON to continue your measurements later.</li>
+        <div style="text-align: center">- - - - - - - - - -</div>
+        <li data-i18n="helpLi8">Desktop: Left click to draw. Space + Drag (or Right Click) to pan.</li>
+        <li data-i18n="helpLi9">Mobile: One finger to draw. Two fingers to pan and zoom simultaneously.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="aboutModal">
+    <div class="modal-content">
+      <div class="close-modal" onclick="toggleAbout()">&#x2715;</div>
+      <h2 style="margin: 0 0 12px; font-size: 18px; color: var(--text-bright);">Measure Tool</h2>
+      <p data-i18n="headerH1" style="font-size: 13px; font-weight: 600; color: var(--text); margin: 0 0 10px;"></p>
+      <p data-i18n="headerP" style="font-size: 13px; color: var(--text-dim); line-height: 1.6; margin: 0 0 14px;"></p>
+      <div id="about-badges" style="display:flex; flex-wrap:wrap; gap:6px;">
+        <span data-i18n="badgeFree" style="background:rgba(14,122,255,0.15);border:1px solid rgba(14,122,255,0.35);color:#80b8ff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;"></span>
+        <span data-i18n="badgeNoUpload" style="background:rgba(14,122,255,0.15);border:1px solid rgba(14,122,255,0.35);color:#80b8ff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;"></span>
+        <span data-i18n="badgeMobile" style="background:rgba(14,122,255,0.15);border:1px solid rgba(14,122,255,0.35);color:#80b8ff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfConsentModal">
+    <div class="modal-content" style="max-width:460px;">
+      <h2 data-i18n="pdfConsentTitle" style="margin:0 0 12px;font-size:17px;color:var(--text-bright);">Open PDF</h2>
+      <p data-i18n="pdfConsentBody" style="font-size:13px;color:var(--text-dim);line-height:1.6;margin:0 0 16px;"></p>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);margin-bottom:20px;cursor:pointer;">
+        <input type="checkbox" id="pdfConsentDontAsk" style="width:14px;height:14px;accent-color:var(--accent);">
+        <span data-i18n="pdfConsentDontAsk">Don't ask again</span>
+      </label>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="secondary" id="pdfConsentCancelBtn" style="height:30px;font-size:12px;padding:0 14px;" data-i18n="pdfConsentCancel">Cancel</button>
+        <button class="primary" id="pdfConsentContinueBtn" data-i18n="pdfConsentContinue">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfPageModal">
+    <div class="modal-content" style="max-width:340px;">
+      <h2 data-i18n="pdfPageTitle" style="margin:0 0 14px;font-size:17px;color:var(--text-bright);">Select page</h2>
+      <select id="pdfPageSelect" style="width:100%;margin-bottom:20px;height:30px;font-size:13px;"></select>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="secondary" id="pdfPageCancelBtn" style="height:30px;font-size:12px;padding:0 14px;" data-i18n="pdfConsentCancel">Cancel</button>
+        <button class="primary" id="pdfPageOpenBtn" data-i18n="pdfPageOpen">Open</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #main-app-container -->
+
+<!-- Script block 1: base definitions + DOMContentLoaded bootstrap -->
+<script>
+const translations = {};
+
+const canvas = document.getElementById('imageCanvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+const container = document.getElementById('canvas-container');
+const dropZone = document.getElementById('drop-zone');
+const modeIndicator = document.getElementById('mode-indicator');
+
+let img = new Image();
+let lines = [];
+let customTexts = [];
+let selectedElement = null;
+let undoStack = [], redoStack = [];
+let scale = 1, offsetX = 0, offsetY = 0;
+let isDrawing = false, isPanning = false, textMode = false, spacePressed = false;
+let customLineMode = false;
+let pointers = [];
+let prevDiff = -1;
+let lastCenter = null;
+let draggedPoint = null, draggedText = null, draggedWholeLine = null;
+let pointerStartX, pointerStartY, originalElementState = null;
+
+const SNAP_THRESHOLD = 20;
+const HIT_RADIUS = 20;
+
+document.addEventListener('DOMContentLoaded', () => {
+    resizeCanvas();
+    loadInitialSVG();
+    initHistory();
+    window.addEventListener('resize', () => { resizeCanvas(); requestRedraw(); });
+});
+
+function loadInitialSVG() {
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="800" viewBox="0 0 1000 800"><rect width="100%" height="100%" fill="#f8f9fa"/><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e0e4e8" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)" /><rect x="50" y="50" width="900" height="700" fill="none" stroke="#cfd8dc" stroke-width="2" rx="10"/><path d="M200 200 h600 v300 h-600 z M200 350 h250 M450 200 v300" fill="none" stroke="#546e7a" stroke-width="3" stroke-linejoin="round"/><text x="500" y="100" font-family="Segoe UI, Arial" font-size="28" font-weight="600" text-anchor="middle" fill="#2c3e50">${translations.svgTitle}</text><path d="M205 205 l15 15 M795 205 l-15 15" stroke="#d32f2f" stroke-width="2" stroke-linecap="round"/><text x="500" y="130" font-family="Arial" font-size="14" text-anchor="middle" fill="#90a4ae">${translations.svgSub}</text><g transform="translate(100, 540)"><rect width="800" height="180" fill="white" fill-opacity="0.6" rx="8" stroke="#eceff1"/><text x="400" y="30" font-family="Segoe UI, Arial" font-size="18" font-weight="bold" text-anchor="middle" fill="#455a64">${translations.svgInstr}</text><text x="400" y="60" font-family="Segoe UI, Arial" font-size="15" text-anchor="middle" fill="#d32f2f">1. ${translations.instr1}</text><text x="400" y="80" font-family="Segoe UI, Arial" font-size="15" text-anchor="middle" fill="#546e7a">2. ${translations.instr2}</text><text x="400" y="110" font-family="Segoe UI, Arial" font-size="12" text-anchor="middle" fill="#78909c" font-style="italic">3. ${translations.instr3}</text><text x="400" y="125" font-family="Segoe UI, Arial" font-size="12" text-anchor="middle" fill="#78909c" font-style="italic">4. ${translations.instr4}</text><text x="400" y="140" font-family="Segoe UI, Arial" font-size="12" text-anchor="middle" fill="#78909c" font-style="italic">5. ${translations.instr5}</text><text x="400" y="155" font-family="Segoe UI, Arial" font-size="12" text-anchor="middle" fill="#78909c" font-style="italic">6. ${translations.instr6}</text></g></svg>`;
+    loadSource("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString))), true, false);
+}
+
+canvas.addEventListener('pointerdown', handlePointerDown);
+canvas.addEventListener('pointermove', handlePointerMove);
+canvas.addEventListener('pointerup', handlePointerUp);
+canvas.addEventListener('pointercancel', handlePointerUp);
+canvas.addEventListener('pointerout', handlePointerUp);
+
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        spacePressed = true;
+        container.style.cursor = 'grab';
+        e.preventDefault();
+    }
+    if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { performUndo(); e.preventDefault(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'y') { performRedo(); e.preventDefault(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) { performRedo(); e.preventDefault(); }
+});
+window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+        spacePressed = false;
+        container.style.cursor = textMode ? 'text' : 'crosshair';
+    }
+});
+
+container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    // Trackpad pinch-to-zoom and Ctrl+scroll (mouse) both set ctrlKey.
+    // Plain trackpad scroll and mouse scroll without Ctrl pan instead.
+    if (e.ctrlKey) {
+        // Smooth, delta-proportional zoom. Small trackpad gestures yield a
+        // factor near 1.0 (fine control); the per-event factor is clamped so a
+        // single fast flick cannot jump too far.
+        const k = 0.0075;
+        let factor = Math.exp(-e.deltaY * k);
+        factor = Math.max(0.85, Math.min(1.15, factor));
+        zoomToPoint(e.clientX, e.clientY, factor);
+    } else {
+        offsetX -= e.deltaX;
+        offsetY -= e.deltaY;
+        requestRedraw();
+    }
+}, { passive: false });
+
+document.getElementById('imageLoader').onchange = (e) => handleFile(e.target.files[0]);
+window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('active');
+});
+window.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    if (e.relatedTarget === null) dropZone.classList.remove('active');
+});
+window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('active');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handlePointerDown(e) {
+    canvas.setPointerCapture(e.pointerId);
+    pointers.push(e);
+
+    if (pointers.length === 2) {
+        showModeIndicator(true);
+        if (isDrawing) { lines.pop(); isDrawing = false; }
+        draggedPoint = null; draggedText = null; draggedWholeLine = null;
+        const p1 = pointers[0]; const p2 = pointers[1];
+        prevDiff = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+        lastCenter = { x: (p1.clientX + p2.clientX)/2, y: (p1.clientY + p2.clientY)/2 };
+        return;
+    }
+
+    const pt = getCanvasCoordinates(e.clientX, e.clientY);
+
+    if (pointers.length === 1) {
+        if (spacePressed || e.button === 2) {
+            isPanning = true;
+            container.style.cursor = 'grabbing';
+            return;
+        }
+        if (textMode) { createTextInput(e.clientX, e.clientY, pt.x, pt.y); return; }
+
+        for (let i = customTexts.length - 1; i >= 0; i--) {
+            if (isHitText(customTexts[i], pt.x, pt.y)) {
+                selectedElement = { type: 'text', index: i }; draggedText = i;
+                pointerStartX = pt.x; pointerStartY = pt.y;
+                requestRedraw(); updateUI(); return;
+            }
+        }
+        for (let i = 0; i < lines.length; i++) {
+            if (dist(lines[i].x1, lines[i].y1, pt.x, pt.y) < HIT_RADIUS / scale) { draggedPoint = { idx: i, type: 'p1' }; return; }
+            if (dist(lines[i].x2, lines[i].y2, pt.x, pt.y) < HIT_RADIUS / scale) { draggedPoint = { idx: i, type: 'p2' }; return; }
+        }
+        for (let i = 0; i < lines.length; i++) {
+            const center = { x: (lines[i].x1 + lines[i].x2)/2, y: (lines[i].y1 + lines[i].y2)/2 };
+            if (dist(center.x, center.y, pt.x, pt.y) < HIT_RADIUS / scale) {
+                selectedElement = { type: 'line', index: i }; draggedWholeLine = i;
+                pointerStartX = pt.x; pointerStartY = pt.y; originalElementState = { ...lines[i] };
+                requestRedraw(); updateUI(); return;
+            }
+        }
+
+        selectedElement = null; updateUI();
+        const snap = getSnappedPos(pt, -1);
+        isDrawing = true;
+        lines.push({
+            x1: snap.x, y1: snap.y, x2: snap.x, y2: snap.y,
+            lColor: document.getElementById('lineColor').value,
+            lWidth: parseInt(document.getElementById('lineWidth').value),
+            tColor: document.getElementById('lineTextColor').value,
+            tSize: parseInt(document.getElementById('lineTextSize').value),
+            cap: document.getElementById('capType').value,
+            isCustom: customLineMode
+        });
+        requestRedraw();
+    }
+}
+
+function handlePointerMove(e) {
+    const index = pointers.findIndex(p => p.pointerId === e.pointerId);
+    if (index !== -1) pointers[index] = e;
+
+    if (pointers.length === 2) {
+        const p1 = pointers[0]; const p2 = pointers[1];
+        const curCenter = { x: (p1.clientX + p2.clientX)/2, y: (p1.clientY + p2.clientY)/2 };
+        const curDiff = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+        if (prevDiff > 0 && lastCenter) {
+            const dx = curCenter.x - lastCenter.x;
+            const dy = curCenter.y - lastCenter.y;
+            offsetX += dx; offsetY += dy;
+            const zoomFactor = curDiff / prevDiff;
+            const oldScale = scale;
+            scale *= zoomFactor;
+            if (scale < 0.05) scale = 0.05; if (scale > 50) scale = 50;
+            offsetX = curCenter.x - (curCenter.x - offsetX) * (scale / oldScale);
+            offsetY = curCenter.y - (curCenter.y - offsetY) * (scale / oldScale);
+            requestRedraw();
+        }
+        prevDiff = curDiff; lastCenter = curCenter;
+        return;
+    }
+
+    if (pointers.length === 1) {
+        const pt = getCanvasCoordinates(e.clientX, e.clientY);
+        if (isPanning) { offsetX += e.movementX; offsetY += e.movementY; requestRedraw(); return; }
+        if (isDrawing) {
+            const snap = getSnappedPos(pt, lines.length - 1);
+            lines[lines.length - 1].x2 = snap.x; lines[lines.length - 1].y2 = snap.y;
+            requestRedraw();
+        } else if (draggedPoint) {
+            const snap = getSnappedPos(pt, draggedPoint.idx);
+            if (draggedPoint.type === 'p1') { lines[draggedPoint.idx].x1 = snap.x; lines[draggedPoint.idx].y1 = snap.y; }
+            else { lines[draggedPoint.idx].x2 = snap.x; lines[draggedPoint.idx].y2 = snap.y; }
+            requestRedraw();
+        } else if (draggedText !== null) {
+            customTexts[draggedText].x = pt.x; customTexts[draggedText].y = pt.y;
+            requestRedraw();
+        } else if (draggedWholeLine !== null) {
+            const baseDx = pt.x - pointerStartX; const baseDy = pt.y - pointerStartY;
+            lines[draggedWholeLine].x1 = originalElementState.x1 + baseDx; lines[draggedWholeLine].y1 = originalElementState.y1 + baseDy;
+            lines[draggedWholeLine].x2 = originalElementState.x2 + baseDx; lines[draggedWholeLine].y2 = originalElementState.y2 + baseDy;
+            requestRedraw();
+        }
+    }
+}
+
+function handlePointerUp(e) {
+    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
+    if (pointers.length < 2) { prevDiff = -1; lastCenter = null; showModeIndicator(false); }
+    if (isPanning && pointers.length === 0) {
+        isPanning = false;
+        container.style.cursor = spacePressed ? 'grab' : (textMode ? 'text' : 'crosshair');
+    }
+    if (isDrawing) {
+        const l = lines[lines.length - 1];
+        if (Math.hypot(l.x2 - l.x1, l.y2 - l.y1) < 5 / scale) { lines.pop(); } else { saveState(); }
+    } else if (draggedPoint || draggedText !== null || draggedWholeLine !== null) {
+        saveState();
+    }
+    isDrawing = false; draggedPoint = null; draggedText = null; draggedWholeLine = null; originalElementState = null;
+    requestRedraw();
+}
+
+function getCanvasCoordinates(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: (clientX - rect.left - offsetX) / scale, y: (clientY - rect.top - offsetY) / scale };
+}
+function zoomToPoint(cx, cy, factor) {
+    const oldScale = scale;
+    scale *= factor;
+    if (scale < 0.05) scale = 0.05; if (scale > 50) scale = 50;
+    offsetX = cx - (cx - offsetX) * (scale / oldScale);
+    offsetY = cy - (cy - offsetY) * (scale / oldScale);
+    requestRedraw();
+}
+function changeZoom(factor) {
+    const rect = container.getBoundingClientRect();
+    zoomToPoint(rect.left + rect.width/2, rect.top + rect.height/2, factor);
+}
+function fitToScreen() {
+    if (!img.complete || img.naturalWidth === 0) return;
+    const padding = 20;
+    const scaleX = (canvas.width - padding*2) / img.naturalWidth;
+    const scaleY = (canvas.height - padding*2) / img.naturalHeight;
+    scale = Math.min(scaleX, scaleY);
+    offsetX = (canvas.width - img.naturalWidth * scale) / 2;
+    offsetY = (canvas.height - img.naturalHeight * scale) / 2;
+    requestRedraw();
+}
+function setZoomOriginal() {
+    scale = 1;
+    offsetX = (canvas.width - img.naturalWidth) / 2;
+    offsetY = (canvas.height - img.naturalHeight) / 2;
+    requestRedraw();
+}
+
+let _wasSnapped = false;
+
+function getSnappedPos(pos, currentLineIdx) {
+    let bestDist = SNAP_THRESHOLD / scale;
+    let bestPos = pos;
+    lines.forEach((l, i) => {
+        if (i === currentLineIdx) return;
+        const d1 = dist(l.x1, l.y1, pos.x, pos.y); const d2 = dist(l.x2, l.y2, pos.x, pos.y);
+        if (d1 < bestDist) { bestDist = d1; bestPos = {x: l.x1, y: l.y1}; }
+        else if (d2 < bestDist) { bestDist = d2; bestPos = {x: l.x2, y: l.y2}; }
+    });
+    const snapped = bestPos !== pos;
+    if (snapped && !_wasSnapped && navigator.vibrate) navigator.vibrate(10);
+    _wasSnapped = snapped;
+    return bestPos;
+}
+function isHitText(t, x, y) {
+    const w = t.text.length * (t.size * 0.6); const h = t.size;
+    return (x > t.x - w/2 && x < t.x + w/2 && y > t.y - h && y < t.y + h/2);
+}
+function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+
+let animationFrameId;
+function requestRedraw() { if (!animationFrameId) { animationFrameId = requestAnimationFrame(() => { draw(); animationFrameId = null; }); } }
+
+function draw() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!img.complete || img.naturalWidth === 0) return;
+    ctx.translate(offsetX, offsetY); ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+    let pixelsPerUnit = 0;
+    if (lines[0]) {
+        const pxLen = dist(lines[0].x1, lines[0].y1, lines[0].x2, lines[0].y2);
+        if (pxLen > 0) pixelsPerUnit = pxLen / parseFloat(document.getElementById('knownValue').value);
+    }
+    const unitName = document.getElementById('unitName').value;
+    lines.forEach((l, i) => {
+        const isRef = (i === 0);
+        const isSel = (selectedElement && selectedElement.type === 'line' && selectedElement.index === i);
+        ctx.beginPath(); ctx.lineWidth = l.lWidth;
+        ctx.strokeStyle = isRef ? (isSel ? "#ff00a2" : "#ff3b30") : (isSel ? "#f1c40f" : l.lColor);
+        ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+        const angle = Math.atan2(l.y2 - l.y1, l.x2 - l.x1);
+        drawCap(ctx, l.x1, l.y1, angle + Math.PI, l.cap, ctx.strokeStyle, l.lWidth);
+        drawCap(ctx, l.x2, l.y2, angle, l.cap, ctx.strokeStyle, l.lWidth);
+        if (!l.isCustom || isRef) {
+            let valText = isRef ? parseFloat(document.getElementById('knownValue').value).toString() : (dist(l.x1,l.y1,l.x2,l.y2)/pixelsPerUnit).toFixed(2);
+            drawTextWithBg(valText + " " + unitName, (l.x1 + l.x2)/2, (l.y1 + l.y2)/2 - 10/scale, l.tSize, l.tColor, isSel);
+        }
+    });
+    customTexts.forEach((t, i) => {
+        const isSel = (selectedElement && selectedElement.type === 'text' && selectedElement.index === i);
+        drawTextWithBg(t.text, t.x, t.y, t.size, isSel ? "#f1c40f" : t.color, isSel);
+    });
+}
+
+function drawCap(ctx, x, y, angle, type, color, w) {
+    if (type === 'none') return;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = w;
+    ctx.beginPath();
+    if (type === 'arrow') { const s = w * 3; ctx.moveTo(0, 0); ctx.lineTo(-s, -s/2); ctx.lineTo(-s, s/2); ctx.fill(); }
+    else if (type === 'tshape') { const s = w * 4; ctx.moveTo(0, -s/2); ctx.lineTo(0, s/2); ctx.stroke(); }
+    else if (type === 'circle') { ctx.arc(0, 0, w * 1.5, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+}
+function drawTextWithBg(txt, x, y, size, color, isSel) {
+    ctx.save();
+    ctx.font = `bold ${size}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.strokeStyle = "rgba(0,0,0,0.8)"; ctx.lineWidth = size / 8; ctx.strokeText(txt, x, y);
+    ctx.fillStyle = color; ctx.fillText(txt, x, y);
+    ctx.restore();
+}
+
+function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = (ev) => loadSource(ev.target.result, true, true);
+    reader.readAsDataURL(file);
+}
+
+function loadSource(src, resetZoom, hideDropZone) {
+    img = new Image();
+    img.onload = () => {
+        if (hideDropZone) dropZone.style.display = 'none';
+        if (resetZoom) {
+            lines = [];
+            customTexts = [];
+            fitToScreen();
+            initHistory();
+        }
+        requestRedraw();
+    };
+    img.src = src;
+}
+function resizeCanvas() { canvas.width = container.clientWidth; canvas.height = container.clientHeight; requestRedraw(); }
+
+function toggleTextMode() { textMode = !textMode; customLineMode = false; document.getElementById('addTextBtn').classList.toggle('active', textMode); document.getElementById('customLineBtn').classList.remove('active'); }
+function toggleCustomLineMode() { customLineMode = !customLineMode; textMode = false; document.getElementById('customLineBtn').classList.toggle('active', customLineMode); document.getElementById('addTextBtn').classList.remove('active'); }
+function deleteSelected() { if (!selectedElement) return; if (selectedElement.type === 'line') lines.splice(selectedElement.index, 1); else customTexts.splice(selectedElement.index, 1); selectedElement = null; saveState(); updateUI(); requestRedraw(); }
+
+function resetAll() {
+    if (confirm(translations.confirmClearAll)) {
+        lines = [];
+        customTexts = [];
+        selectedElement = null;
+        saveState();
+        requestRedraw();
+    }
+}
+
+function createTextInput(screenX, screenY, canvasX, canvasY) {
+    spawnInput(screenX, screenY, "", (val) => {
+        if (val) { customTexts.push({ x: canvasX, y: canvasY, text: val, color: document.getElementById('textColor').value, size: parseInt(document.getElementById('textSize').value) }); saveState(); }
+    });
+}
+function spawnInput(x, y, initialVal, callback) {
+    const input = document.createElement('input');
+    input.id = 'tempTextInput'; input.type = 'text'; input.value = initialVal;
+    input.style.left = x + 'px'; input.style.top = y + 'px';
+    document.body.appendChild(input);
+    setTimeout(() => { input.focus(); }, 50);
+    const finish = () => { callback(input.value.trim()); if (input.parentNode) input.parentNode.removeChild(input); textMode = false; document.getElementById('addTextBtn').classList.remove('active'); requestRedraw(); };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finish(); });
+    input.addEventListener('blur', finish);
+}
+
+function initHistory() {
+    undoStack = [JSON.stringify({ l: [], t: [] })];
+    redoStack = [];
+    updateUI();
+}
+
+function saveState() {
+    redoStack = [];
+    undoStack.push(JSON.stringify({ l: lines, t: customTexts }));
+    updateUI();
+}
+
+function performUndo() {
+    if (undoStack.length <= 1) return;
+    const currentState = undoStack.pop();
+    redoStack.push(currentState);
+    const prevState = JSON.parse(undoStack[undoStack.length - 1]);
+    lines = prevState.l.map(obj => ({...obj}));
+    customTexts = prevState.t.map(obj => ({...obj}));
+    selectedElement = null;
+    requestRedraw();
+    updateUI();
+}
+
+function performRedo() {
+    if (redoStack.length === 0) return;
+    const nextStateStr = redoStack.pop();
+    const nextState = JSON.parse(nextStateStr);
+    undoStack.push(nextStateStr);
+    lines = nextState.l.map(obj => ({...obj}));
+    customTexts = nextState.t.map(obj => ({...obj}));
+    selectedElement = null;
+    requestRedraw();
+    updateUI();
+}
+
+function updateUI() {
+    document.getElementById('deleteBtn').disabled = !selectedElement;
+    document.getElementById('undoBtn').disabled = undoStack.length <= 1;
+    document.getElementById('redoBtn').disabled = redoStack.length === 0;
+}
+
+function showModeIndicator(show) { modeIndicator.classList.toggle('visible', show); }
+function toggleHelp() { document.getElementById('helpModal').style.display = (document.getElementById('helpModal').style.display === 'flex') ? 'none' : 'flex'; }
+function toggleAbout() { document.getElementById('aboutModal').style.display = (document.getElementById('aboutModal').style.display === 'flex') ? 'none' : 'flex'; }
+
+function exportFile(type) {
+    if (!img.complete || img.naturalWidth === 0) return;
+    const tempCanvas = document.createElement('canvas'); tempCanvas.width = img.naturalWidth; tempCanvas.height = img.naturalHeight; const tCtx = tempCanvas.getContext('2d'); tCtx.drawImage(img, 0, 0);
+    let pixelsPerUnit = 0; if (lines[0]) { pixelsPerUnit = dist(lines[0].x1, lines[0].y1, lines[0].x2, lines[0].y2) / parseFloat(document.getElementById('knownValue').value); }
+    const unitName = document.getElementById('unitName').value;
+    lines.forEach((l, i) => {
+        tCtx.lineWidth = l.lWidth; tCtx.strokeStyle = (i===0) ? "#ff3b30" : l.lColor;
+        tCtx.beginPath(); tCtx.moveTo(l.x1, l.y1); tCtx.lineTo(l.x2, l.y2); tCtx.stroke();
+        if (!l.isCustom || i===0) {
+            let txt = (i===0) ? document.getElementById('knownValue').value : (dist(l.x1,l.y1,l.x2,l.y2)/pixelsPerUnit).toFixed(2);
+            tCtx.font = `bold ${l.tSize}px sans-serif`; tCtx.textAlign = "center"; tCtx.fillStyle = l.tColor;
+            tCtx.strokeText(txt+" "+unitName, (l.x1+l.x2)/2, (l.y1+l.y2)/2-10); tCtx.fillText(txt+" "+unitName, (l.x1+l.x2)/2, (l.y1+l.y2)/2-10);
+        }
+    });
+    customTexts.forEach(t => { tCtx.font = `bold ${t.size}px sans-serif`; tCtx.textAlign = "center"; tCtx.fillStyle = t.color; tCtx.strokeText(t.text, t.x, t.y); tCtx.fillText(t.text, t.x, t.y); });
+    const link = document.createElement('a'); link.download = 'measurement.'+type; link.href = tempCanvas.toDataURL('image/'+(type==='png'?'png':'jpeg')); link.click();
+}
+</script>
+
+<!-- Script block 2: override block — advanced features: areas, angles, measurement table, save/load -->
+<script>
+let currentImageSrc = '';
+let areas = [];
+let angles = [];
+let areaMode = false;
+let angleMode = false;
+let pointerMode = false;
+let currentAreaPoints = [];
+let selectedAngleLine = null;
+let measurementPanelVisible = false;
+
+// Clip / export area (image-space rect). null = export whole image.
+let clipMode = false;
+let clipRect = null;                 // { x, y, w, h } in image space
+let draggedClipHandle = null;        // 'nw' | 'ne' | 'sw' | 'se' | 'move'
+let clipDragStart = null;            // { px, py, rect } snapshot at drag start
+const CLIP_HANDLE_SIZE = 10;         // screen px half-size of a corner handle
+
+canvas.removeEventListener('pointerdown', handlePointerDown);
+canvas.removeEventListener('pointermove', handlePointerMove);
+canvas.removeEventListener('pointerup', handlePointerUp);
+canvas.removeEventListener('pointercancel', handlePointerUp);
+canvas.removeEventListener('pointerout', handlePointerUp);
+
+loadSource = function(src, resetZoom, hideDropZone, options = {}) {
+    currentImageSrc = src;
+    img = new Image();
+    img.onload = () => {
+        if (hideDropZone) dropZone.style.display = 'none';
+        if (resetZoom) {
+            if (!options.preserveMeasurements) {
+                lines = [];
+                customTexts = [];
+                areas = [];
+                angles = [];
+                currentAreaPoints = [];
+                selectedAngleLine = null;
+                selectedElement = null;
+                clipRect = null;
+                clipMode = false;
+                draggedClipHandle = null;
+                syncModeButtons();
+                initHistory();
+            }
+            fitToScreen();
+        }
+        requestRedraw();
+        updateUI();
+    };
+    img.src = src;
+};
+
+handlePointerDown = function(e) {
+    if (e.button === 2) { pointers.push(e); return; }
+    canvas.setPointerCapture(e.pointerId);
+    pointers.push(e);
+
+    if (pointers.length === 2) {
+        showModeIndicator(true);
+        if (isDrawing) { lines.pop(); isDrawing = false; }
+        draggedPoint = null; draggedText = null; draggedWholeLine = null;
+        const p1 = pointers[0]; const p2 = pointers[1];
+        prevDiff = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+        lastCenter = { x: (p1.clientX + p2.clientX)/2, y: (p1.clientY + p2.clientY)/2 };
+        return;
+    }
+
+    const pt = getCanvasCoordinates(e.clientX, e.clientY);
+
+    if (pointers.length === 1) {
+        if (spacePressed || pointerMode) {
+            isPanning = true;
+            container.style.cursor = 'grabbing';
+            return;
+        }
+
+        if (clipMode) {
+            const handle = clipHandleAt(pt);
+            if (handle) {
+                draggedClipHandle = handle;
+                clipDragStart = { px: pt.x, py: pt.y, rect: { ...clipRect } };
+                container.style.cursor = clipCursorFor(handle);
+            }
+            return;
+        }
+
+        if (areaMode) {
+            handleAreaPoint(pt);
+            return;
+        }
+
+        if (angleMode) {
+            handleAnglePick(pt);
+            return;
+        }
+
+        if (textMode) { createTextInput(e.clientX, e.clientY, pt.x, pt.y); return; }
+
+        for (let i = customTexts.length - 1; i >= 0; i--) {
+            if (isHitText(customTexts[i], pt.x, pt.y)) {
+                selectedElement = { type: 'text', index: i }; draggedText = i;
+                pointerStartX = pt.x; pointerStartY = pt.y;
+                requestRedraw(); updateUI(); return;
+            }
+        }
+        for (let i = areas.length - 1; i >= 0; i--) {
+            if (isPointInPolygon(pt, areas[i].points)) {
+                selectedElement = { type: 'area', index: i };
+                requestRedraw(); updateUI(); return;
+            }
+        }
+        for (let i = angles.length - 1; i >= 0; i--) {
+            const label = getAngleLabelPoint(angles[i]);
+            if (dist(label.x, label.y, pt.x, pt.y) < HIT_RADIUS / scale) {
+                selectedElement = { type: 'angle', index: i };
+                requestRedraw(); updateUI(); return;
+            }
+        }
+        for (let i = 0; i < lines.length; i++) {
+            if (dist(lines[i].x1, lines[i].y1, pt.x, pt.y) < HIT_RADIUS / scale) { draggedPoint = { idx: i, type: 'p1' }; return; }
+            if (dist(lines[i].x2, lines[i].y2, pt.x, pt.y) < HIT_RADIUS / scale) { draggedPoint = { idx: i, type: 'p2' }; return; }
+        }
+        for (let i = 0; i < lines.length; i++) {
+            const center = { x: (lines[i].x1 + lines[i].x2)/2, y: (lines[i].y1 + lines[i].y2)/2 };
+            if (dist(center.x, center.y, pt.x, pt.y) < HIT_RADIUS / scale || distanceToSegment(pt, lines[i]) < HIT_RADIUS / scale) {
+                selectedElement = { type: 'line', index: i }; draggedWholeLine = i;
+                pointerStartX = pt.x; pointerStartY = pt.y; originalElementState = { ...lines[i] };
+                requestRedraw(); updateUI(); return;
+            }
+        }
+
+        selectedElement = null; updateUI();
+        const snap = getSnappedPos(pt, -1);
+        isDrawing = true;
+        lines.push({
+            name: '',
+            x1: snap.x, y1: snap.y, x2: snap.x, y2: snap.y,
+            lColor: document.getElementById('lineColor').value,
+            lWidth: parseInt(document.getElementById('lineWidth').value),
+            tColor: document.getElementById('lineTextColor').value,
+            tSize: parseInt(document.getElementById('lineTextSize').value),
+            cap: document.getElementById('capType').value,
+            isCustom: customLineMode
+        });
+        requestRedraw();
+    }
+};
+
+handlePointerMove = function(e) {
+    const index = pointers.findIndex(p => p.pointerId === e.pointerId);
+    if (index !== -1) pointers[index] = e;
+
+    if (pointers.length === 2) {
+        const p1 = pointers[0]; const p2 = pointers[1];
+        const curCenter = { x: (p1.clientX + p2.clientX)/2, y: (p1.clientY + p2.clientY)/2 };
+        const curDiff = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+        if (prevDiff > 0 && lastCenter) {
+            const dx = curCenter.x - lastCenter.x;
+            const dy = curCenter.y - lastCenter.y;
+            offsetX += dx; offsetY += dy;
+            const zoomFactor = curDiff / prevDiff;
+            const oldScale = scale;
+            scale *= zoomFactor;
+            if (scale < 0.05) scale = 0.05; if (scale > 50) scale = 50;
+            offsetX = curCenter.x - (curCenter.x - offsetX) * (scale / oldScale);
+            offsetY = curCenter.y - (curCenter.y - offsetY) * (scale / oldScale);
+            requestRedraw();
+        }
+        prevDiff = curDiff; lastCenter = curCenter;
+        return;
+    }
+
+    if (pointers.length === 0) {
+        const pt = getCanvasCoordinates(e.clientX, e.clientY);
+        if (clipMode) {
+            container.style.cursor = clipCursorFor(clipHandleAt(pt));
+        } else if (!areaMode && !angleMode && !textMode && !pointerMode) {
+            container.style.cursor = isHoveringHitTarget(pt) ? 'pointer' : getCursorForMode();
+        }
+    }
+
+    if (pointers.length === 1) {
+        const pt = getCanvasCoordinates(e.clientX, e.clientY);
+        if (isPanning) { offsetX += e.movementX; offsetY += e.movementY; requestRedraw(); return; }
+        if (clipMode) {
+            if (draggedClipHandle) { updateClipDrag(pt); requestRedraw(); }
+            return;
+        }
+        if (areaMode || angleMode) return;
+        if (isDrawing) {
+            const snap = getSnappedPos(pt, lines.length - 1);
+            lines[lines.length - 1].x2 = snap.x; lines[lines.length - 1].y2 = snap.y;
+            requestRedraw();
+        } else if (draggedPoint) {
+            const snap = getSnappedPos(pt, draggedPoint.idx);
+            if (draggedPoint.type === 'p1') { lines[draggedPoint.idx].x1 = snap.x; lines[draggedPoint.idx].y1 = snap.y; }
+            else { lines[draggedPoint.idx].x2 = snap.x; lines[draggedPoint.idx].y2 = snap.y; }
+            requestRedraw();
+        } else if (draggedText !== null) {
+            customTexts[draggedText].x = pt.x; customTexts[draggedText].y = pt.y;
+            requestRedraw();
+        } else if (draggedWholeLine !== null) {
+            const baseDx = pt.x - pointerStartX; const baseDy = pt.y - pointerStartY;
+            lines[draggedWholeLine].x1 = originalElementState.x1 + baseDx; lines[draggedWholeLine].y1 = originalElementState.y1 + baseDy;
+            lines[draggedWholeLine].x2 = originalElementState.x2 + baseDx; lines[draggedWholeLine].y2 = originalElementState.y2 + baseDy;
+            requestRedraw();
+        }
+    }
+};
+
+handlePointerUp = function(e) {
+    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
+    if (pointers.length < 2) { prevDiff = -1; lastCenter = null; showModeIndicator(false); }
+    if (isPanning && pointers.length === 0) {
+        isPanning = false;
+        container.style.cursor = spacePressed ? 'grab' : getCursorForMode();
+    }
+    if (draggedClipHandle) {
+        draggedClipHandle = null;
+        clipDragStart = null;
+        clampClipRect();
+        container.style.cursor = getCursorForMode();
+        requestRedraw();
+        return;
+    }
+    if (isDrawing) {
+        const l = lines[lines.length - 1];
+        if (Math.hypot(l.x2 - l.x1, l.y2 - l.y1) < 5 / scale) { lines.pop(); } else { saveState(); }
+    } else if (draggedPoint || draggedText !== null || draggedWholeLine !== null) {
+        saveState();
+    }
+    isDrawing = false; draggedPoint = null; draggedText = null; draggedWholeLine = null; originalElementState = null;
+    requestRedraw();
+    updateUI();
+};
+
+canvas.addEventListener('pointerdown', handlePointerDown);
+canvas.addEventListener('pointermove', handlePointerMove);
+canvas.addEventListener('pointerup', handlePointerUp);
+canvas.addEventListener('pointercancel', handlePointerUp);
+canvas.addEventListener('pointerout', handlePointerUp);
+
+function isHoveringHitTarget(pt) {
+    const r = HIT_RADIUS / scale;
+    for (let i = customTexts.length - 1; i >= 0; i--) {
+        if (isHitText(customTexts[i], pt.x, pt.y)) return true;
+    }
+    for (let i = areas.length - 1; i >= 0; i--) {
+        if (isPointInPolygon(pt, areas[i].points)) return true;
+    }
+    for (let i = angles.length - 1; i >= 0; i--) {
+        const label = getAngleLabelPoint(angles[i]);
+        if (dist(label.x, label.y, pt.x, pt.y) < r) return true;
+    }
+    for (let i = 0; i < lines.length; i++) {
+        if (dist(lines[i].x1, lines[i].y1, pt.x, pt.y) < r) return true;
+        if (dist(lines[i].x2, lines[i].y2, pt.x, pt.y) < r) return true;
+        if (distanceToSegment(pt, lines[i]) < r) return true;
+    }
+    return false;
+}
+
+draw = function() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!img.complete || img.naturalWidth === 0) return;
+    ctx.translate(offsetX, offsetY); ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+    drawAreas(ctx);
+    drawCurrentArea(ctx);
+    drawLines(ctx);
+    drawAngles(ctx);
+    customTexts.forEach((t, i) => {
+        const isSel = (selectedElement && selectedElement.type === 'text' && selectedElement.index === i);
+        drawTextWithBg(t.text, t.x, t.y, t.size, isSel ? "#f1c40f" : t.color, isSel);
+    });
+    drawClipOverlay(ctx);
+};
+
+function drawLines(targetCtx) {
+    const pixelsPerUnit = getPixelsPerUnit();
+    const unitName = document.getElementById('unitName').value;
+    lines.forEach((l, i) => {
+        const isRef = (i === 0);
+        const isSel = (selectedElement && selectedElement.type === 'line' && selectedElement.index === i);
+        targetCtx.beginPath(); targetCtx.lineWidth = l.lWidth;
+        targetCtx.strokeStyle = isRef ? (isSel ? "#ff00a2" : "#ff3b30") : (isSel ? "#f1c40f" : l.lColor);
+        targetCtx.moveTo(l.x1, l.y1); targetCtx.lineTo(l.x2, l.y2); targetCtx.stroke();
+        const angle = Math.atan2(l.y2 - l.y1, l.x2 - l.x1);
+        drawCap(targetCtx, l.x1, l.y1, angle + Math.PI, l.cap, targetCtx.strokeStyle, l.lWidth);
+        drawCap(targetCtx, l.x2, l.y2, angle, l.cap, targetCtx.strokeStyle, l.lWidth);
+        if (!l.isCustom || isRef) {
+            const valText = formatLineValue(l, i, pixelsPerUnit, unitName);
+            if (valText) drawTextWithBg(valText, (l.x1 + l.x2)/2, (l.y1 + l.y2)/2 - 10/scale, l.tSize, l.tColor, isSel);
+        }
+    });
+}
+
+function drawAreas(targetCtx) {
+    areas.forEach((area, index) => {
+        const isSel = selectedElement && selectedElement.type === 'area' && selectedElement.index === index;
+        drawPolygon(targetCtx, area.points, isSel ? 'rgba(241, 196, 15, 0.22)' : 'rgba(0, 122, 255, 0.18)', isSel ? '#f1c40f' : '#00a8ff', 2);
+        const center = getPolygonCentroid(area.points);
+        drawTextWithBg(formatAreaValue(area), center.x, center.y, 18, isSel ? '#f1c40f' : '#ffffff', isSel);
+    });
+}
+
+function drawCurrentArea(targetCtx) {
+    if (!currentAreaPoints.length) return;
+    drawPolygon(targetCtx, currentAreaPoints, 'rgba(40, 205, 65, 0.12)', '#28cd41', 2, false);
+    currentAreaPoints.forEach(point => {
+        targetCtx.beginPath();
+        targetCtx.fillStyle = '#28cd41';
+        targetCtx.arc(point.x, point.y, 4 / scale, 0, Math.PI * 2);
+        targetCtx.fill();
+    });
+}
+
+function drawAngles(targetCtx) {
+    angles.forEach((angleItem, index) => {
+        const isSel = selectedElement && selectedElement.type === 'angle' && selectedElement.index === index;
+        const color = isSel ? '#f1c40f' : '#ff9500';
+        const geometry = getAngleGeometry(angleItem);
+        if (!geometry) return;
+        targetCtx.save();
+        targetCtx.strokeStyle = color;
+        targetCtx.lineWidth = 2;
+        targetCtx.setLineDash([8 / scale, 6 / scale]);
+        targetCtx.beginPath();
+        targetCtx.moveTo(geometry.vertex.x, geometry.vertex.y);
+        targetCtx.lineTo(geometry.armA.x, geometry.armA.y);
+        targetCtx.moveTo(geometry.vertex.x, geometry.vertex.y);
+        targetCtx.lineTo(geometry.armB.x, geometry.armB.y);
+        targetCtx.stroke();
+        targetCtx.restore();
+        drawAngleArc(targetCtx, geometry, color);
+        const label = getAngleLabelPoint(angleItem);
+        drawTextWithBg(formatAngleValue(angleItem), label.x, label.y, 18, color, isSel);
+    });
+}
+
+function drawAngleArc(targetCtx, geometry, color) {
+    drawAngleArcOn(targetCtx, geometry, color, scale);
+}
+
+function drawAngleArcOn(targetCtx, geometry, color, displayScale) {
+    const radius = Math.min(
+        45 / displayScale,
+        dist(geometry.vertex.x, geometry.vertex.y, geometry.armA.x, geometry.armA.y) * 0.45,
+        dist(geometry.vertex.x, geometry.vertex.y, geometry.armB.x, geometry.armB.y) * 0.45
+    );
+    if (!Number.isFinite(radius) || radius <= 0) return;
+    const start = Math.atan2(geometry.armA.y - geometry.vertex.y, geometry.armA.x - geometry.vertex.x);
+    const end = Math.atan2(geometry.armB.y - geometry.vertex.y, geometry.armB.x - geometry.vertex.x);
+    const sweep = normalizeAngle(end - start);
+    const counterclockwise = sweep > Math.PI;
+    targetCtx.save();
+    targetCtx.strokeStyle = color;
+    targetCtx.lineWidth = 2;
+    targetCtx.beginPath();
+    targetCtx.arc(geometry.vertex.x, geometry.vertex.y, radius, start, end, counterclockwise);
+    targetCtx.stroke();
+    targetCtx.restore();
+}
+
+function drawPolygon(targetCtx, points, fillStyle, strokeStyle, lineWidth, closePath = true) {
+    if (points.length < 2) return;
+    targetCtx.save();
+    targetCtx.beginPath();
+    targetCtx.moveTo(points[0].x, points[0].y);
+    points.slice(1).forEach(point => targetCtx.lineTo(point.x, point.y));
+    if (closePath && points.length > 2) targetCtx.closePath();
+    targetCtx.fillStyle = fillStyle;
+    targetCtx.strokeStyle = strokeStyle;
+    targetCtx.lineWidth = lineWidth;
+    if (closePath && points.length > 2) targetCtx.fill();
+    targetCtx.stroke();
+    targetCtx.restore();
+}
+
+function handleAreaPoint(point) {
+    if (currentAreaPoints.length >= 3 && dist(currentAreaPoints[0].x, currentAreaPoints[0].y, point.x, point.y) < HIT_RADIUS / scale) {
+        finishArea();
+        return;
+    }
+    currentAreaPoints.push({ x: point.x, y: point.y });
+    requestRedraw();
+    updateUI();
+}
+
+function handleAnglePick(point) {
+    const lineIndex = findLineAtPoint(point);
+    if (lineIndex === -1) return;
+    if (selectedAngleLine === null) {
+        selectedAngleLine = lineIndex;
+        selectedElement = { type: 'line', index: lineIndex };
+    } else if (selectedAngleLine !== lineIndex) {
+        const geometry = getConnectedAngleGeometry(lines[selectedAngleLine], lines[lineIndex]);
+        if (!geometry) {
+            alert(translations.angleSharedEndpoint);
+            selectedAngleLine = lineIndex;
+            selectedElement = { type: 'line', index: lineIndex };
+            requestRedraw();
+            updateUI();
+            return;
+        }
+        angles.push({
+            name: '',
+            vertex: geometry.vertex,
+            armA: geometry.armA,
+            armB: geometry.armB,
+            a: lineSnapshot(lines[selectedAngleLine]),
+            b: lineSnapshot(lines[lineIndex])
+        });
+        selectedAngleLine = null;
+        selectedElement = { type: 'angle', index: angles.length - 1 };
+        saveState();
+    }
+    requestRedraw();
+    updateUI();
+}
+
+function finishArea() {
+    if (currentAreaPoints.length < 3) return;
+    areas.push({
+        name: '',
+        points: currentAreaPoints.map(point => ({ ...point }))
+    });
+    currentAreaPoints = [];
+    selectedElement = { type: 'area', index: areas.length - 1 };
+    saveState();
+    requestRedraw();
+    updateUI();
+}
+
+function toggleAreaMode() {
+    areaMode = !areaMode;
+    angleMode = false;
+    textMode = false;
+    customLineMode = false;
+    pointerMode = false;
+    selectedAngleLine = null;
+    if (!areaMode) currentAreaPoints = [];
+    syncModeButtons();
+    requestRedraw();
+}
+
+function toggleAngleMode() {
+    angleMode = !angleMode;
+    areaMode = false;
+    textMode = false;
+    customLineMode = false;
+    pointerMode = false;
+    currentAreaPoints = [];
+    selectedAngleLine = null;
+    syncModeButtons();
+    requestRedraw();
+}
+
+toggleTextMode = function() {
+    textMode = !textMode;
+    customLineMode = false;
+    areaMode = false;
+    angleMode = false;
+    pointerMode = false;
+    currentAreaPoints = [];
+    selectedAngleLine = null;
+    syncModeButtons();
+};
+
+toggleCustomLineMode = function() {
+    customLineMode = !customLineMode;
+    textMode = false;
+    areaMode = false;
+    angleMode = false;
+    pointerMode = false;
+    currentAreaPoints = [];
+    selectedAngleLine = null;
+    syncModeButtons();
+};
+
+function togglePointerMode() {
+    pointerMode = !pointerMode;
+    textMode = false;
+    customLineMode = false;
+    areaMode = false;
+    angleMode = false;
+    currentAreaPoints = [];
+    selectedAngleLine = null;
+    syncModeButtons();
+}
+
+function toggleClipMode() {
+    clipMode = !clipMode;
+    if (clipMode) {
+        // Other interaction modes off while defining the clip area
+        textMode = false;
+        customLineMode = false;
+        areaMode = false;
+        angleMode = false;
+        pointerMode = false;
+        currentAreaPoints = [];
+        selectedAngleLine = null;
+        selectedElement = null;
+        if (!clipRect) clipRect = defaultClipRect();
+        clampClipRect();
+    }
+    draggedClipHandle = null;
+    syncModeButtons();
+    requestRedraw();
+}
+
+function defaultClipRect() {
+    // Start as the full image (max clip area is the canvas/image size)
+    return { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+}
+
+function clampClipRect() {
+    if (!clipRect) return;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    // Keep within image bounds and enforce a minimum size
+    const minSize = 10;
+    clipRect.w = Math.max(minSize, Math.min(clipRect.w, iw));
+    clipRect.h = Math.max(minSize, Math.min(clipRect.h, ih));
+    clipRect.x = Math.max(0, Math.min(clipRect.x, iw - clipRect.w));
+    clipRect.y = Math.max(0, Math.min(clipRect.y, ih - clipRect.h));
+}
+
+// Which clip handle (if any) is under image-space point pt. Returns handle id or null.
+function clipHandleAt(pt) {
+    if (!clipMode || !clipRect) return null;
+    const hs = CLIP_HANDLE_SIZE / scale; // handle half-size in image space
+    const c = clipRect;
+    const corners = {
+        nw: { x: c.x,         y: c.y },
+        ne: { x: c.x + c.w,   y: c.y },
+        sw: { x: c.x,         y: c.y + c.h },
+        se: { x: c.x + c.w,   y: c.y + c.h },
+    };
+    for (const id in corners) {
+        if (Math.abs(pt.x - corners[id].x) <= hs && Math.abs(pt.y - corners[id].y) <= hs) return id;
+    }
+    // Inside the rect (but not on a corner) → move
+    if (pt.x > c.x && pt.x < c.x + c.w && pt.y > c.y && pt.y < c.y + c.h) return 'move';
+    return null;
+}
+
+function updateClipDrag(pt) {
+    if (!draggedClipHandle || !clipDragStart) return;
+    const s = clipDragStart.rect;
+    const dx = pt.x - clipDragStart.px;
+    const dy = pt.y - clipDragStart.py;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const minSize = 10;
+
+    if (draggedClipHandle === 'move') {
+        clipRect.x = s.x + dx;
+        clipRect.y = s.y + dy;
+        clipRect.w = s.w;
+        clipRect.h = s.h;
+        clampClipRect();
+        return;
+    }
+
+    // Corner drag: adjust the two edges meeting at that corner
+    let left = s.x, top = s.y, right = s.x + s.w, bottom = s.y + s.h;
+    if (draggedClipHandle === 'nw') { left = s.x + dx; top = s.y + dy; }
+    else if (draggedClipHandle === 'ne') { right = s.x + s.w + dx; top = s.y + dy; }
+    else if (draggedClipHandle === 'sw') { left = s.x + dx; bottom = s.y + s.h + dy; }
+    else if (draggedClipHandle === 'se') { right = s.x + s.w + dx; bottom = s.y + s.h + dy; }
+
+    // Clamp edges to image bounds
+    left = Math.max(0, Math.min(left, iw));
+    right = Math.max(0, Math.min(right, iw));
+    top = Math.max(0, Math.min(top, ih));
+    bottom = Math.max(0, Math.min(bottom, ih));
+
+    // Normalise so width/height stay positive, enforce minimum size
+    let nx = Math.min(left, right);
+    let ny = Math.min(top, bottom);
+    let nw = Math.abs(right - left);
+    let nh = Math.abs(bottom - top);
+    if (nw < minSize) nw = minSize;
+    if (nh < minSize) nh = minSize;
+    if (nx + nw > iw) nx = iw - nw;
+    if (ny + nh > ih) ny = ih - nh;
+
+    clipRect.x = nx; clipRect.y = ny; clipRect.w = nw; clipRect.h = nh;
+}
+
+function clipCursorFor(handle) {
+    switch (handle) {
+        case 'nw': case 'se': return 'nwse-resize';
+        case 'ne': case 'sw': return 'nesw-resize';
+        case 'move': return 'move';
+        default: return 'crosshair';
+    }
+}
+
+function drawClipOverlay(targetCtx) {
+    if (!clipMode || !clipRect) return;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const c = clipRect;
+
+    // Dark overlay over the four regions outside the clip rect (image space)
+    targetCtx.save();
+    targetCtx.fillStyle = 'rgba(0,0,0,0.45)';
+    targetCtx.beginPath();
+    // Outer rect (whole image) then inner rect reversed → even-odd hole
+    targetCtx.rect(0, 0, iw, ih);
+    targetCtx.rect(c.x, c.y, c.w, c.h);
+    targetCtx.fill('evenodd');
+    targetCtx.restore();
+
+    // Dashed border
+    targetCtx.save();
+    targetCtx.strokeStyle = '#ffffff';
+    targetCtx.lineWidth = 1.5 / scale;
+    targetCtx.setLineDash([6 / scale, 4 / scale]);
+    targetCtx.strokeRect(c.x, c.y, c.w, c.h);
+    targetCtx.restore();
+
+    // Corner handles (fixed screen size)
+    const hs = CLIP_HANDLE_SIZE / scale;
+    const corners = [
+        { x: c.x,       y: c.y },
+        { x: c.x + c.w, y: c.y },
+        { x: c.x,       y: c.y + c.h },
+        { x: c.x + c.w, y: c.y + c.h },
+    ];
+    targetCtx.save();
+    targetCtx.fillStyle = '#0e7aff';
+    targetCtx.strokeStyle = '#ffffff';
+    targetCtx.lineWidth = 1.5 / scale;
+    corners.forEach(pt => {
+        targetCtx.beginPath();
+        targetCtx.rect(pt.x - hs, pt.y - hs, hs * 2, hs * 2);
+        targetCtx.fill();
+        targetCtx.stroke();
+    });
+    targetCtx.restore();
+}
+
+function syncModeButtons() {
+    document.getElementById('addTextBtn').classList.toggle('active', textMode);
+    document.getElementById('customLineBtn').classList.toggle('active', customLineMode);
+    document.getElementById('areaBtn').classList.toggle('active', areaMode);
+    document.getElementById('angleBtn').classList.toggle('active', angleMode);
+    document.getElementById('pointerModeBtn').classList.toggle('active', pointerMode);
+    const clipBtn = document.getElementById('clipBtn');
+    if (clipBtn) clipBtn.classList.toggle('active', clipMode);
+    document.getElementById('finishAreaBtn').disabled = currentAreaPoints.length < 3;
+    container.style.cursor = getCursorForMode();
+    updateUI();
+}
+
+function toggleMeasurementPanel(forceVisible) {
+    measurementPanelVisible = typeof forceVisible === 'boolean' ? forceVisible : !measurementPanelVisible;
+    const panel = document.getElementById('measurement-panel');
+    const button = document.getElementById('measurementsToggleBtn');
+    panel.classList.toggle('collapsed', !measurementPanelVisible);
+    button.textContent = measurementPanelVisible ? translations.hideTable : translations.showTable;
+    button.classList.toggle('active', measurementPanelVisible);
+}
+
+function getCursorForMode() {
+    if (clipMode) return 'crosshair';
+    if (pointerMode) return 'grab';
+    if (textMode) return 'text';
+    if (areaMode) return 'copy';
+    if (angleMode) return 'cell';
+    return 'crosshair';
+}
+
+function lineSnapshot(line) {
+    return { x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2 };
+}
+
+function getConnectedAngleGeometry(lineA, lineB) {
+    const endpoints = [
+        { a: { x: lineA.x1, y: lineA.y1 }, aOpposite: { x: lineA.x2, y: lineA.y2 }, b: { x: lineB.x1, y: lineB.y1 }, bOpposite: { x: lineB.x2, y: lineB.y2 } },
+        { a: { x: lineA.x1, y: lineA.y1 }, aOpposite: { x: lineA.x2, y: lineA.y2 }, b: { x: lineB.x2, y: lineB.y2 }, bOpposite: { x: lineB.x1, y: lineB.y1 } },
+        { a: { x: lineA.x2, y: lineA.y2 }, aOpposite: { x: lineA.x1, y: lineA.y1 }, b: { x: lineB.x1, y: lineB.y1 }, bOpposite: { x: lineB.x2, y: lineB.y2 } },
+        { a: { x: lineA.x2, y: lineA.y2 }, aOpposite: { x: lineA.x1, y: lineA.y1 }, b: { x: lineB.x2, y: lineB.y2 }, bOpposite: { x: lineB.x1, y: lineB.y1 } }
+    ];
+    const tolerance = Math.min(50, Math.max(10, SNAP_THRESHOLD / Math.max(scale, 0.05)));
+    let best = null;
+    endpoints.forEach(candidate => {
+        const distance = dist(candidate.a.x, candidate.a.y, candidate.b.x, candidate.b.y);
+        if (distance <= tolerance && (!best || distance < best.distance)) {
+            best = { ...candidate, distance };
+        }
+    });
+    if (!best) return null;
+    return {
+        vertex: { x: (best.a.x + best.b.x) / 2, y: (best.a.y + best.b.y) / 2 },
+        armA: best.aOpposite,
+        armB: best.bOpposite
+    };
+}
+
+function getAngleGeometry(angleItem) {
+    if (angleItem.vertex && angleItem.armA && angleItem.armB) return angleItem;
+    if (angleItem.a && angleItem.b) return getConnectedAngleGeometry(angleItem.a, angleItem.b);
+    return null;
+}
+
+function findLineAtPoint(point) {
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (distanceToSegment(point, lines[i]) < HIT_RADIUS / scale) return i;
+    }
+    return -1;
+}
+
+function distanceToSegment(point, line) {
+    const dx = line.x2 - line.x1;
+    const dy = line.y2 - line.y1;
+    if (dx === 0 && dy === 0) return dist(point.x, point.y, line.x1, line.y1);
+    const t = Math.max(0, Math.min(1, ((point.x - line.x1) * dx + (point.y - line.y1) * dy) / (dx * dx + dy * dy)));
+    const projection = { x: line.x1 + t * dx, y: line.y1 + t * dy };
+    return dist(point.x, point.y, projection.x, projection.y);
+}
+
+function getPixelsPerUnit() {
+    if (!lines[0]) return 0;
+    const knownValue = parseFloat(document.getElementById('knownValue').value);
+    const pxLen = dist(lines[0].x1, lines[0].y1, lines[0].x2, lines[0].y2);
+    if (!Number.isFinite(knownValue) || knownValue <= 0 || pxLen <= 0) return 0;
+    return pxLen / knownValue;
+}
+
+function formatLineValue(line, index, pixelsPerUnit = getPixelsPerUnit(), unitName = document.getElementById('unitName').value) {
+    if (line.isCustom && index !== 0) return '';
+    if (index === 0) {
+        const knownValue = parseFloat(document.getElementById('knownValue').value);
+        return Number.isFinite(knownValue) && knownValue > 0 ? `${knownValue} ${unitName}` : translations.setScale;
+    }
+    if (!pixelsPerUnit) return translations.setScale;
+    return `${(dist(line.x1, line.y1, line.x2, line.y2) / pixelsPerUnit).toFixed(2)} ${unitName}`;
+}
+
+function formatAreaValue(area) {
+    const pixelsPerUnit = getPixelsPerUnit();
+    const unitName = document.getElementById('unitName').value;
+    if (!pixelsPerUnit) return translations.setScale;
+    return `${(Math.abs(getPolygonArea(area.points)) / (pixelsPerUnit * pixelsPerUnit)).toFixed(2)} ${unitName}\u00b2`;
+}
+
+function formatAngleValue(angleItem) {
+    const value = calculateAngle(angleItem);
+    return Number.isFinite(value) ? `${value.toFixed(1)}\u00b0` : translations.connectLines;
+}
+
+function calculateAngle(angleItem) {
+    const geometry = getAngleGeometry(angleItem);
+    if (!geometry) return NaN;
+    const v1 = { x: geometry.armA.x - geometry.vertex.x, y: geometry.armA.y - geometry.vertex.y };
+    const v2 = { x: geometry.armB.x - geometry.vertex.x, y: geometry.armB.y - geometry.vertex.y };
+    const len1 = Math.hypot(v1.x, v1.y);
+    const len2 = Math.hypot(v2.x, v2.y);
+    if (!len1 || !len2) return NaN;
+    const dot = v1.x * v2.x + v1.y * v2.y;
+    const cos = Math.max(-1, Math.min(1, dot / (len1 * len2)));
+    return Math.acos(cos) * 180 / Math.PI;
+}
+
+function normalizeAngle(angle) {
+    const fullTurn = Math.PI * 2;
+    return ((angle % fullTurn) + fullTurn) % fullTurn;
+}
+
+function getPolygonArea(points) {
+    return points.reduce((sum, point, index) => {
+        const next = points[(index + 1) % points.length];
+        return sum + point.x * next.y - next.x * point.y;
+    }, 0) / 2;
+}
+
+function getPolygonCentroid(points) {
+    const total = points.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
+    return { x: total.x / points.length, y: total.y / points.length };
+}
+
+function getAngleLabelPoint(angleItem, displayScale = scale) {
+    const geometry = getAngleGeometry(angleItem);
+    if (geometry) {
+        const v1 = normalizeVector({ x: geometry.armA.x - geometry.vertex.x, y: geometry.armA.y - geometry.vertex.y });
+        const v2 = normalizeVector({ x: geometry.armB.x - geometry.vertex.x, y: geometry.armB.y - geometry.vertex.y });
+        let bisector = { x: v1.x + v2.x, y: v1.y + v2.y };
+        if (Math.hypot(bisector.x, bisector.y) < 0.001) bisector = { x: -v1.y, y: v1.x };
+        const direction = normalizeVector(bisector);
+        const labelDistance = Math.min(
+            70 / displayScale,
+            dist(geometry.vertex.x, geometry.vertex.y, geometry.armA.x, geometry.armA.y) * 0.55,
+            dist(geometry.vertex.x, geometry.vertex.y, geometry.armB.x, geometry.armB.y) * 0.55
+        );
+        return { x: geometry.vertex.x + direction.x * labelDistance, y: geometry.vertex.y + direction.y * labelDistance };
+    }
+    return {
+        x: (angleItem.a.x1 + angleItem.a.x2 + angleItem.b.x1 + angleItem.b.x2) / 4,
+        y: (angleItem.a.y1 + angleItem.a.y2 + angleItem.b.y1 + angleItem.b.y2) / 4
+    };
+}
+
+function normalizeVector(vector) {
+    const length = Math.hypot(vector.x, vector.y);
+    if (!length) return { x: 0, y: 0 };
+    return { x: vector.x / length, y: vector.y / length };
+}
+
+function cloneAngleMeasurement(angleItem) {
+    return {
+        ...angleItem,
+        vertex: angleItem.vertex ? { ...angleItem.vertex } : undefined,
+        armA: angleItem.armA ? { ...angleItem.armA } : undefined,
+        armB: angleItem.armB ? { ...angleItem.armB } : undefined,
+        a: angleItem.a ? { ...angleItem.a } : undefined,
+        b: angleItem.b ? { ...angleItem.b } : undefined
+    };
+}
+
+function isPointInPolygon(point, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].x, yi = polygon[i].y;
+        const xj = polygon[j].x, yj = polygon[j].y;
+        const intersect = ((yi > point.y) !== (yj > point.y)) && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+initHistory = function() {
+    undoStack = [serializeMeasurementState()];
+    redoStack = [];
+    updateUI();
+};
+
+saveState = function() {
+    redoStack = [];
+    undoStack.push(serializeMeasurementState());
+    updateUI();
+};
+
+function serializeMeasurementState() {
+    return JSON.stringify({ l: lines, t: customTexts, a: areas, g: angles });
+}
+
+function restoreMeasurementState(stateString) {
+    const state = JSON.parse(stateString);
+    lines = (state.l || []).map(obj => ({...obj}));
+    customTexts = (state.t || []).map(obj => ({...obj}));
+    areas = (state.a || []).map(area => ({ ...area, points: (area.points || []).map(point => ({ ...point })) }));
+    angles = (state.g || []).map(cloneAngleMeasurement);
+    currentAreaPoints = [];
+    selectedAngleLine = null;
+    selectedElement = null;
+}
+
+performUndo = function() {
+    if (undoStack.length <= 1) return;
+    const currentState = undoStack.pop();
+    redoStack.push(currentState);
+    restoreMeasurementState(undoStack[undoStack.length - 1]);
+    requestRedraw();
+    updateUI();
+};
+
+performRedo = function() {
+    if (redoStack.length === 0) return;
+    const nextStateStr = redoStack.pop();
+    undoStack.push(nextStateStr);
+    restoreMeasurementState(nextStateStr);
+    requestRedraw();
+    updateUI();
+};
+
+deleteSelected = function() {
+    if (!selectedElement) return;
+    deleteMeasurement(selectedElement.type, selectedElement.index);
+};
+
+function deleteMeasurement(type, index) {
+    if (type === 'line') lines.splice(index, 1);
+    else if (type === 'text') customTexts.splice(index, 1);
+    else if (type === 'area') areas.splice(index, 1);
+    else if (type === 'angle') angles.splice(index, 1);
+    selectedElement = null;
+    saveState();
+    requestRedraw();
+    updateUI();
+}
+
+resetAll = function() {
+    if (confirm(translations.confirmClearAll)) {
+        lines = [];
+        customTexts = [];
+        areas = [];
+        angles = [];
+        currentAreaPoints = [];
+        selectedAngleLine = null;
+        selectedElement = null;
+        saveState();
+        requestRedraw();
+    }
+};
+
+updateUI = function() {
+    document.getElementById('deleteBtn').disabled = !selectedElement;
+    document.getElementById('undoBtn').disabled = undoStack.length <= 1;
+    document.getElementById('redoBtn').disabled = redoStack.length === 0;
+    document.getElementById('finishAreaBtn').disabled = currentAreaPoints.length < 3;
+    renderMeasurementTable();
+};
+
+function renderMeasurementTable() {
+    const body = document.getElementById('measurementTableBody');
+    if (!body) return;
+    const rows = [];
+    lines.forEach((line, index) => {
+        rows.push(measurementRow('line', index, line.name || defaultMeasurementName('line', index), index === 0 ? translations.typeScale : (line.isCustom ? translations.typePlain : translations.typeLine), formatLineValue(line, index)));
+    });
+    areas.forEach((area, index) => {
+        rows.push(measurementRow('area', index, area.name || defaultMeasurementName('area', index), translations.typeArea, formatAreaValue(area)));
+    });
+    angles.forEach((angleItem, index) => {
+        rows.push(measurementRow('angle', index, angleItem.name || defaultMeasurementName('angle', index), translations.typeAngle, formatAngleValue(angleItem)));
+    });
+    body.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="4" class="empty-measurements">${escapeHtml(translations.emptyMeasurements)}</td></tr>`;
+}
+
+function measurementRow(type, index, name, typeLabel, value) {
+    const isSelected = selectedElement && selectedElement.type === type && selectedElement.index === index;
+    return `<tr class="${isSelected ? 'selected-row' : ''}">
+        <td><input value="${escapeHtml(name)}" onchange="renameMeasurement('${type}', ${index}, this.value)"></td>
+        <td>${escapeHtml(typeLabel)}</td>
+        <td>${escapeHtml(value || '\u2014')}</td>
+        <td class="measurement-actions">
+            <button class="secondary" onclick="selectMeasurement('${type}', ${index})">${escapeHtml(translations.select)}</button>
+            <button class="danger" onclick="deleteMeasurement('${type}', ${index})">\u00d7</button>
+        </td>
+    </tr>`;
+}
+
+function defaultMeasurementName(type, index) {
+    if (type === 'line') return index === 0 ? translations.defaultScaleLine : `${translations.defaultLine} ${index}`;
+    if (type === 'area') return `${translations.defaultArea} ${index + 1}`;
+    return `${translations.defaultAngle} ${index + 1}`;
+}
+
+function renameMeasurement(type, index, value) {
+    const cleanValue = value.trim();
+    if (type === 'line' && lines[index]) lines[index].name = cleanValue;
+    if (type === 'area' && areas[index]) areas[index].name = cleanValue;
+    if (type === 'angle' && angles[index]) angles[index].name = cleanValue;
+    saveState();
+}
+
+function selectMeasurement(type, index) {
+    selectedElement = { type, index };
+    requestRedraw();
+    updateUI();
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+}
+
+function getMeasurementRows() {
+    const rows = [];
+    lines.forEach((line, index) => rows.push({
+        name: line.name || defaultMeasurementName('line', index),
+        type: index === 0 ? translations.typeScale : (line.isCustom ? translations.typePlain : translations.typeLine),
+        value: formatLineValue(line, index) || '',
+    }));
+    areas.forEach((area, index) => rows.push({
+        name: area.name || defaultMeasurementName('area', index),
+        type: translations.typeArea,
+        value: formatAreaValue(area),
+    }));
+    angles.forEach((angleItem, index) => rows.push({
+        name: angleItem.name || defaultMeasurementName('angle', index),
+        type: translations.typeAngle,
+        value: formatAngleValue(angleItem),
+    }));
+    return rows;
+}
+
+function exportMeasurementsCsv() {
+    const rows = [['Name', 'Type', 'Value'], ...getMeasurementRows().map(row => [row.name, row.type, row.value])];
+    const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    downloadBlob(csv, 'measurements.csv', 'text/csv;charset=utf-8');
+}
+
+function loadProjectFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const project = JSON.parse(event.target.result);
+            if (!project.imageSrc || !project.measurements) throw new Error('Invalid project file');
+            document.getElementById('knownValue').value = project.settings?.knownValue || '1.0';
+            document.getElementById('unitName').value = project.settings?.unitName || 'm';
+            lines = (project.measurements.lines || []).map(line => ({ ...line }));
+            customTexts = (project.measurements.customTexts || []).map(text => ({ ...text }));
+            areas = (project.measurements.areas || []).map(area => ({ ...area, points: (area.points || []).map(point => ({ ...point })) }));
+            angles = (project.measurements.angles || []).map(cloneAngleMeasurement);
+            selectedElement = null;
+            currentAreaPoints = [];
+            selectedAngleLine = null;
+            loadSource(project.imageSrc, true, true, { preserveMeasurements: true });
+            initHistory();
+        } catch (error) {
+            alert(translations.projectLoadError);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function downloadBlob(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
+
+function drawTextWithBgOn(targetCtx, txt, x, y, size, color) {
+    targetCtx.save();
+    targetCtx.font = `bold ${size}px sans-serif`;
+    targetCtx.textAlign = "center";
+    targetCtx.textBaseline = "middle";
+    targetCtx.strokeStyle = "rgba(0,0,0,0.8)";
+    targetCtx.lineWidth = Math.max(2, size / 8);
+    targetCtx.strokeText(txt, x, y);
+    targetCtx.fillStyle = color;
+    targetCtx.fillText(txt, x, y);
+    targetCtx.restore();
+}
+
+// Maximum longest-side for exported files and saved project images.
+const OUTPUT_MAX_SIDE = 4096;
+
+// Return deep copies of lines/customTexts/areas/angles with all image-space
+// numeric fields (coordinates, stroke widths, text sizes) multiplied by f.
+// Used only when f < 1. When f === 1 the live arrays are used directly.
+function scaleMeasurements(f) {
+    function scalePoint(p) { return { x: p.x * f, y: p.y * f }; }
+    function scaleLine(l) {
+        return Object.assign({}, l, {
+            x1: l.x1 * f, y1: l.y1 * f, x2: l.x2 * f, y2: l.y2 * f,
+            lWidth: l.lWidth * f, tSize: l.tSize * f,
+        });
+    }
+    function scaleText(t) {
+        return Object.assign({}, t, { x: t.x * f, y: t.y * f, size: t.size * f });
+    }
+    function scaleArea(a) {
+        return Object.assign({}, a, { points: a.points.map(scalePoint) });
+    }
+    function scaleAngle(g) {
+        const out = Object.assign({}, g);
+        if (g.vertex) out.vertex = scalePoint(g.vertex);
+        if (g.armA)   out.armA   = scalePoint(g.armA);
+        if (g.armB)   out.armB   = scalePoint(g.armB);
+        if (g.a)      out.a      = { x1: g.a.x1*f, y1: g.a.y1*f, x2: g.a.x2*f, y2: g.a.y2*f };
+        if (g.b)      out.b      = { x1: g.b.x1*f, y1: g.b.y1*f, x2: g.b.x2*f, y2: g.b.y2*f };
+        return out;
+    }
+    return {
+        lines:       lines.map(scaleLine),
+        customTexts: customTexts.map(scaleText),
+        areas:       areas.map(scaleArea),
+        angles:      angles.map(scaleAngle),
+    };
+}
+
+function renderExportCanvas() {
+    // Export region in image space: the clip rect only while clip mode is
+    // active, otherwise the whole image.
+    const region = (clipMode && clipRect)
+        ? { x: clipRect.x, y: clipRect.y, w: clipRect.w, h: clipRect.h }
+        : { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+
+    const f = Math.min(1, OUTPUT_MAX_SIDE / Math.max(region.w, region.h));
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width  = Math.floor(region.w * f);
+    tempCanvas.height = Math.floor(region.h * f);
+    const tCtx = tempCanvas.getContext('2d');
+    tCtx.scale(f, f);
+    // Shift so the region's top-left maps to (0,0); all measurement coords are
+    // in image space so this single translate offsets everything correctly.
+    tCtx.translate(-region.x, -region.y);
+    tCtx.drawImage(img, 0, 0);
+    const pixelsPerUnit = getPixelsPerUnit();
+    const unitName = document.getElementById('unitName').value;
+
+    areas.forEach(area => {
+        drawPolygon(tCtx, area.points, 'rgba(0, 122, 255, 0.18)', '#00a8ff', 2);
+        const center = getPolygonCentroid(area.points);
+        drawTextWithBgOn(tCtx, formatAreaValue(area), center.x, center.y, 18, '#ffffff');
+    });
+
+    lines.forEach((l, i) => {
+        tCtx.lineWidth = l.lWidth;
+        tCtx.strokeStyle = (i === 0) ? "#ff3b30" : l.lColor;
+        tCtx.beginPath();
+        tCtx.moveTo(l.x1, l.y1);
+        tCtx.lineTo(l.x2, l.y2);
+        tCtx.stroke();
+        const lineAngle = Math.atan2(l.y2 - l.y1, l.x2 - l.x1);
+        drawCap(tCtx, l.x1, l.y1, lineAngle + Math.PI, l.cap, tCtx.strokeStyle, l.lWidth);
+        drawCap(tCtx, l.x2, l.y2, lineAngle, l.cap, tCtx.strokeStyle, l.lWidth);
+        const text = formatLineValue(l, i, pixelsPerUnit, unitName);
+        if (text) drawTextWithBgOn(tCtx, text, (l.x1 + l.x2) / 2, (l.y1 + l.y2) / 2 - 10, l.tSize, l.tColor);
+    });
+
+    angles.forEach(angleItem => {
+        const geometry = getAngleGeometry(angleItem);
+        if (!geometry) return;
+        tCtx.save();
+        tCtx.strokeStyle = '#ff9500';
+        tCtx.lineWidth = 2;
+        tCtx.setLineDash([8, 6]);
+        tCtx.beginPath();
+        tCtx.moveTo(geometry.vertex.x, geometry.vertex.y);
+        tCtx.lineTo(geometry.armA.x, geometry.armA.y);
+        tCtx.moveTo(geometry.vertex.x, geometry.vertex.y);
+        tCtx.lineTo(geometry.armB.x, geometry.armB.y);
+        tCtx.stroke();
+        tCtx.restore();
+        drawAngleArcOn(tCtx, geometry, '#ff9500', 1);
+        const label = getAngleLabelPoint(angleItem, 1);
+        drawTextWithBgOn(tCtx, formatAngleValue(angleItem), label.x, label.y, 18, '#ff9500');
+    });
+
+    customTexts.forEach(t => drawTextWithBgOn(tCtx, t.text, t.x, t.y, t.size, t.color));
+    return tempCanvas;
+}
+
+exportFile = function(type) {
+    if (!img.complete || img.naturalWidth === 0) return;
+    const tempCanvas = renderExportCanvas();
+    if (type === 'pdf') {
+        const pdfImage = tempCanvas.toDataURL('image/jpeg', 0.95);
+        const orientation = tempCanvas.width > tempCanvas.height ? 'landscape' : 'portrait';
+        const pdf = new window.jspdf.jsPDF({ orientation, unit: 'px', format: [tempCanvas.width, tempCanvas.height] });
+        pdf.addImage(pdfImage, 'JPEG', 0, 0, tempCanvas.width, tempCanvas.height);
+        pdf.save('measurement.pdf');
+        return;
+    }
+    const mime = type === 'png' ? 'image/png' : 'image/jpeg';
+    const link = document.createElement('a');
+    link.download = 'measurement.' + type;
+    link.href = tempCanvas.toDataURL(mime, 0.92);
+    link.click();
+};
+
+function saveProject() {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const f = Math.min(1, OUTPUT_MAX_SIDE / Math.max(w, h));
+    let imageSrc;
+    let measurements;
+    if (f < 1) {
+        const offscreen = document.createElement('canvas');
+        offscreen.width  = Math.floor(w * f);
+        offscreen.height = Math.floor(h * f);
+        const oCtx = offscreen.getContext('2d');
+        oCtx.drawImage(img, 0, 0, offscreen.width, offscreen.height);
+        imageSrc = offscreen.toDataURL('image/png');
+        measurements = scaleMeasurements(f);
+    } else {
+        imageSrc = currentImageSrc || img.src;
+        measurements = { lines, customTexts, areas, angles };
+    }
+    const project = {
+        version: 1,
+        imageSrc,
+        settings: {
+            knownValue: document.getElementById('knownValue').value,
+            unitName:   document.getElementById('unitName').value,
+        },
+        measurements,
+    };
+    downloadBlob(JSON.stringify(project, null, 2), 'measurement-project.json', 'application/json');
+}
+
+document.getElementById('projectLoader').addEventListener('change', (event) => loadProjectFile(event.target.files[0]));
+document.getElementById('knownValue').addEventListener('input', () => { requestRedraw(); updateUI(); });
+document.getElementById('unitName').addEventListener('input', () => { requestRedraw(); updateUI(); });
+syncModeButtons();
+
+// ── PDF support ────────────────────────────────────────────────────────────
+(function () {
+    const PDFJS_VERSION = '6.3.289';
+    const PDFJS_URL = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.mjs`;
+    const PDFJS_WORKER_URL = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.mjs`;
+    const CONSENT_KEY = 'measuretool.pdfLibraryConsent';
+
+    // Cached import promise — only one dynamic import per page load.
+    // Reset to null on rejection so a later attempt re-fetches.
+    let pdfLibPromise = null;
+    // Set to true only after a successful import; used to skip consent on
+    // subsequent opens within the same page session.
+    let pdfLibLoaded = false;
+
+    function loadPdfLib() {
+        if (!pdfLibPromise) {
+            pdfLibPromise = import(PDFJS_URL).then(function (mod) {
+                mod.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+                pdfLibLoaded = true;
+                return mod;
+            }).catch(function (err) {
+                pdfLibPromise = null;
+                throw err;
+            });
+        }
+        return pdfLibPromise;
+    }
+
+    // Modal open/close helpers following the same pattern as toggleHelp/toggleAbout.
+    function showModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+    function hideModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    // Wire backdrop click: clicks on the overlay (not the content box) close the modal.
+    ['pdfConsentModal', 'pdfPageModal'].forEach(function (id) {
+        document.getElementById(id).addEventListener('click', function (e) {
+            if (e.target === this) hideModal(id);
+        });
+    });
+
+    // State shared between consent and page-picker flows.
+    let _pendingFile = null;
+    let _pendingPdfDoc = null;
+    let _pendingLoadingTask = null;
+
+    // Returns true when either PDF modal is currently visible.
+    function isPdfModalOpen() {
+        return document.getElementById('pdfConsentModal').style.display === 'flex' ||
+               document.getElementById('pdfPageModal').style.display === 'flex';
+    }
+
+    // Reset file input so the same file can be re-selected after a cancel.
+    function resetFileInput() {
+        document.getElementById('imageLoader').value = '';
+    }
+
+    // Clear all pending state, destroy any open loading task, and reset the
+    // file input. Used by cancel paths and error catches to leave a clean slate.
+    function clearPending() {
+        _pendingFile = null;
+        _pendingPdfDoc = null;
+        if (_pendingLoadingTask) {
+            _pendingLoadingTask.destroy();
+            _pendingLoadingTask = null;
+        }
+        resetFileInput();
+    }
+
+    function cancelConsent() {
+        hideModal('pdfConsentModal');
+        clearPending();
+    }
+
+    function cancelPagePicker() {
+        hideModal('pdfPageModal');
+        clearPending();
+    }
+
+    // Global Escape handler for PDF modals. Registered before the context-menu
+    // keydown listener, so stopImmediatePropagation() prevents that listener
+    // from also firing when a PDF modal is open.
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        if (document.getElementById('pdfConsentModal').style.display === 'flex') {
+            cancelConsent();
+            e.stopImmediatePropagation();
+        } else if (document.getElementById('pdfPageModal').style.display === 'flex') {
+            cancelPagePicker();
+            e.stopImmediatePropagation();
+        }
+    });
+
+    // Wire backdrop click: clicks on the overlay (not the content box) close the modal.
+    ['pdfConsentModal', 'pdfPageModal'].forEach(function (id) {
+        document.getElementById(id).addEventListener('click', function (e) {
+            if (e.target !== this) return;
+            if (id === 'pdfConsentModal') { cancelConsent(); }
+            else { cancelPagePicker(); }
+        });
+    });
+
+    // Consent modal button wiring.
+    document.getElementById('pdfConsentCancelBtn').addEventListener('click', cancelConsent);
+    document.getElementById('pdfConsentContinueBtn').addEventListener('click', function () {
+        const dontAsk = document.getElementById('pdfConsentDontAsk').checked;
+        if (dontAsk) {
+            try { localStorage.setItem(CONSENT_KEY, '1'); } catch (_) {}
+        }
+        const file = _pendingFile;
+        _pendingFile = null;
+        hideModal('pdfConsentModal');
+        proceedWithPdf(file);
+    });
+
+    // Page picker modal button wiring.
+    document.getElementById('pdfPageCancelBtn').addEventListener('click', cancelPagePicker);
+    document.getElementById('pdfPageOpenBtn').addEventListener('click', function () {
+        if (!_pendingPdfDoc) return;
+        const select = document.getElementById('pdfPageSelect');
+        const pageNum = parseInt(select.value, 10);
+        const doc = _pendingPdfDoc;
+        const task = _pendingLoadingTask;
+        _pendingPdfDoc = null;
+        _pendingLoadingTask = null;
+        hideModal('pdfPageModal');
+        renderPdfPage(task, doc, pageNum);
+    });
+
+    // Entry point: called by handleFile when a PDF is detected.
+    function handlePdfFile(file) {
+        let hasConsent = false;
+        try { hasConsent = localStorage.getItem(CONSENT_KEY) === '1'; } catch (_) {}
+        if (hasConsent || pdfLibLoaded) {
+            proceedWithPdf(file);
+        } else {
+            _pendingFile = file;
+            showModal('pdfConsentModal');
+        }
+    }
+
+    // Load the pdf.js library, open the document, then route to single-page or picker.
+    function proceedWithPdf(file) {
+        let task = null;
+        loadPdfLib().then(function (pdfjs) {
+            return file.arrayBuffer().then(function (buffer) {
+                task = pdfjs.getDocument({ data: buffer });
+                return task.promise;
+            });
+        }).then(function (pdfDoc) {
+            const numPages = pdfDoc.numPages;
+            if (numPages === 1) {
+                renderPdfPage(task, pdfDoc, 1);
+                task = null;
+            } else {
+                _pendingPdfDoc = pdfDoc;
+                _pendingLoadingTask = task;
+                task = null;
+                populatePageSelect(numPages);
+                showModal('pdfPageModal');
+            }
+        }).catch(function (err) {
+            console.error('PDF load error:', err);
+            if (task) { task.destroy(); task = null; }
+            clearPending();
+            alert(translations.pdfLoadError);
+        });
+    }
+
+    function populatePageSelect(numPages) {
+        const select = document.getElementById('pdfPageSelect');
+        select.innerHTML = '';
+        for (let n = 1; n <= numPages; n++) {
+            const option = document.createElement('option');
+            option.value = String(n);
+            option.textContent = translations.pdfPageLabel.replace('{n}', n);
+            select.appendChild(option);
+        }
+    }
+
+    // Render a single page from a pdf document to an offscreen canvas and hand
+    // the resulting PNG data URL into the existing loadSource image path.
+    function renderPdfPage(loadingTask, pdfDoc, pageNum) {
+        pdfDoc.getPage(pageNum).then(function (page) {
+            const MAX_SIDE = (window.matchMedia && window.matchMedia('(pointer: fine)').matches) ? 8192 : 4096;
+            const BASE_SCALE = 3;
+            const viewport72 = page.getViewport({ scale: 1 });
+            let renderScale = BASE_SCALE;
+            const scaledW = viewport72.width * renderScale;
+            const scaledH = viewport72.height * renderScale;
+            const longestSide = Math.max(scaledW, scaledH);
+            if (longestSide > MAX_SIDE) {
+                renderScale = renderScale * (MAX_SIDE / longestSide);
+            }
+            const viewport = page.getViewport({ scale: renderScale });
+            const offscreen = document.createElement('canvas');
+            offscreen.width = Math.floor(viewport.width);
+            offscreen.height = Math.floor(viewport.height);
+            const offCtx = offscreen.getContext('2d');
+            // White background fill so transparent PDF pages render correctly.
+            offCtx.fillStyle = '#ffffff';
+            offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
+            return page.render({ canvasContext: offCtx, viewport: viewport }).promise.then(function () {
+                if (loadingTask) { loadingTask.destroy(); }
+                const dataUrl = offscreen.toDataURL('image/png');
+                loadSource(dataUrl, true, true);
+            });
+        }).catch(function (err) {
+            console.error('PDF render error:', err);
+            if (loadingTask) { loadingTask.destroy(); }
+            clearPending();
+            alert(translations.pdfLoadError);
+        });
+    }
+
+    // Override handleFile to intercept PDFs before the image FileReader path.
+    const _originalHandleFile = handleFile;
+    handleFile = function (file) {
+        if (!file) return;
+        // Ignore new files while a PDF modal is open to prevent state swap.
+        if (isPdfModalOpen()) { resetFileInput(); return; }
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        if (isPdf) {
+            handlePdfFile(file);
+        } else {
+            _originalHandleFile(file);
+        }
+    };
+}());
+</script>
+
+<!-- i18n loader -->
+<script>
+const EN = {"svgTitle":"Area Measure Tool","svgSub":"(Upload blueprint, floor plan, photo, or PDF)","svgInstr":"GETTING STARTED:","instr1":"Draw a red SCALE line over a known distance to calibrate.","instr2":"Draw other lines over objects - the system will calculate lengths.","instr3":"Double-click any label to edit its value.","instr4":"Select an element and press DEL if you want to remove it.","instr5":"Desktop: Left click to draw. Space + Drag (or Right Click) to pan.","instr6":"Mobile: One finger to draw. Two fingers to pan and zoom simultaneously.","showTable":"Show table","hideTable":"Hide table","select":"Select","typeScale":"Scale","typePlain":"Plain","typeLine":"Line","typeArea":"Area","typeAngle":"Angle","defaultScaleLine":"Scale line","defaultLine":"Line","defaultArea":"Area","defaultAngle":"Angle","emptyMeasurements":"Draw lines, areas or angles.","angleSharedEndpoint":"Angle needs two lines with a shared endpoint. Snap or connect the line ends first.","setScale":"Set scale","connectLines":"Connect lines","confirmClearAll":"Clear all?","projectLoadError":"Could not load project JSON.","pdfConsentTitle":"Open PDF","pdfConsentBody":"To open PDF files, this tool needs to download a small conversion library (pdf.js) from the internet once. Your PDF and all measurements stay on this device and are never uploaded.","pdfConsentDontAsk":"Don't ask again","pdfConsentCancel":"Cancel","pdfConsentContinue":"Continue","pdfPageTitle":"Select page","pdfPageLabel":"Page {n}","pdfPageOpen":"Open","pdfLoadError":"The PDF could not be opened. Check your internet connection and that the file is a valid, unprotected PDF.","metaTitle":"Measure Tool","headerH1":"Professional Online Image Measurement & Scaling Tool","headerP":"Take approximate real-world measurements from an image using an object with known size as scale. Quick, simple, and private – your file is processed in the browser without being uploaded. Also measure areas and angles, keep a measurement table, and save projects as JSON.","badgeFree":"✅ Free","badgeNoUpload":"🔒 No upload","badgeMobile":"📱 Mobile friendly","mobileHint":"📐 Draw a red SCALE line over a known distance to calibrate. | Mobile: One finger to draw. Two fingers to pan and zoom simultaneously.","labelUpload":"📁 Upload File","labelScaleUnits":"📐 Scale & Units","labelAdvanced":"📐 Advanced","labelLineStyle":"↔️ Line Style & Width | Text Color & Size | Type","customLineBtn":"Plain Line","labelAddText":"✍️ Add Custom Text","addTextBtn":"Add text","areaBtn":"Area","finishAreaBtn":"Finish","angleBtn":"Angle","labelMeasurements":"📊 Measurements","measurementsToggleBtn":"Show table","labelDelete":"🗑️ Delete","deleteBtn":"🗑️ Delete element","labelViewport":"🔍 Viewport","fitBtn":"Fit","labelHistory":"↩️ History","resetBtn":"Reset","labelExport":"💾 Export","labelProject":"💼 Project","saveBtn":"Save","loadBtn":"Load","labelLanguage":"Language","labelHelp":"Help","dropTitle":"UPLOAD YOUR FILE","dropSubtitle":"Drag and drop file here or use the button above","panelTitle":"Measurements","csvBtn":"CSV","hideBtn":"Hide","thName":"Name","thType":"Type","thValue":"Value","modeIndicator":"1 Finger: Draw • 2 Fingers: Pan/Zoom","helpTitle":"📐 How to use","helpLi1":"Draw a red SCALE line over a known distance to calibrate.","helpLi2":"Draw other lines over objects - the system will calculate lengths.","helpLi3":"Double-click any label to edit its value.","helpLi4":"Select an element and press DEL if you want to remove it.","helpLi5":"Use Area mode to draw a closed shape and calculate surface area.","helpLi6":"Use Angle mode on two connected lines to measure the angle between them.","helpLi7":"Save or load a project as JSON to continue your measurements later.","helpLi8":"Desktop: Left click to draw. Space + Drag (or Right Click) to pan.","titleLineColor":"Line color","titleLineWidth":"Line width","titleLineTextColor":"Line text color","titleLineTextSize":"Text size above line","titleCustomText":"Custom text color","titleCustomTextSize":"Custom text size","titleZoomOriginal":"Reset image to original size (1:1)","titleDelete":"Select an element and press here or the DEL key","titleCustomLine":"Draw a line without measurement text","labelPointer":"Pointer","clipBtn":"Clip","titleClip":"Clip export area — drag corners to set the region to export"};
+
+window.allTranslations = { en: EN };
+window.currentLang = 'en';
+
+// Apply English immediately — no network round-trip needed
+applyLanguage('en');
+
+function applyLanguage(code) {
+    const t = window.allTranslations[code];
+    if (!t) return;
+    window.currentLang = code;
+    // Assign to the shared translations object used throughout the app JS
+    Object.keys(translations).forEach(k => delete translations[k]);
+    Object.assign(translations, t);
+
+    document.title = t.metaTitle || 'Measure Tool';
+    document.documentElement.lang = code;
+    const rtlLangs = ['ar', 'ur', 'fa', 'he'];
+    document.documentElement.dir = rtlLangs.includes(code) ? 'rtl' : 'ltr';
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key] !== undefined) el.textContent = t[key];
+    });
+
+    document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+        const spec = el.getAttribute('data-i18n-attr');
+        const colonIdx = spec.indexOf(':');
+        if (colonIdx === -1) return;
+        const attrName = spec.slice(0, colonIdx);
+        const key = spec.slice(colonIdx + 1);
+        if (t[key] !== undefined) el.setAttribute(attrName, t[key]);
+    });
+
+    const langSelect = document.querySelector('#langSelect');
+    if (langSelect) langSelect.value = code;
+    syncLangMenu(code);
+
+    // Reload the welcome canvas so SVG text updates
+    if (typeof loadInitialSVG === 'function' && (!img.complete || img.naturalWidth === 0 || img.src.startsWith('data:image/svg+xml'))) {
+        loadInitialSVG();
+    }
+
+    // Re-render measurement table if UI is ready
+    if (typeof updateUI === 'function') {
+        try { updateUI(); } catch (e) { /* not yet initialised */ }
+    }
+}
+
+fetch('./translations.json')
+    .then(r => r.json())
+    .then(data => {
+        window.allTranslations = data;
+        applyLanguage(window.currentLang || 'en');
+    })
+    .catch(err => {
+        console.warn('Could not load translations.json:', err);
+    });
+
+function toggleMenu(id) {
+    const clicked = document.getElementById(id);
+    const wasOpen = clicked.classList.contains('open');
+    closeMenus();
+    if (!wasOpen) {
+        clicked.classList.add('open');
+        clicked.querySelector('.menu-trigger').classList.add('open');
+    }
+}
+
+function closeMenus() {
+    document.querySelectorAll('.menu.open').forEach(m => {
+        m.classList.remove('open');
+        m.querySelector('.menu-trigger').classList.remove('open');
+    });
+}
+
+function syncLangMenu(code) {
+    // Highlight active item only — trigger label stays "Language"
+    const item = document.querySelector(`.lang-item[onclick="selectLang('${code}')"]`);
+    document.querySelectorAll('.lang-item').forEach(el => el.classList.remove('lang-item--active'));
+    if (item) item.classList.add('lang-item--active');
+}
+
+function selectLang(code) {
+    closeMenus();
+    const sel = document.getElementById('langSelect');
+    if (sel) sel.value = code;
+    applyLanguage(code);
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu')) closeMenus();
+});
+
+function useSelectedAsScale() {
+    if (!selectedElement || selectedElement.type !== 'line' || selectedElement.index === 0) return;
+    const idx = selectedElement.index;
+    // Move the selected line to index 0, shifting everything else up by one
+    const promoted = lines.splice(idx, 1)[0];
+    lines.unshift(promoted);
+    selectedElement = { type: 'line', index: 0 };
+    saveState();
+    requestRedraw();
+    updateUI();
+}
+
+// ── Context menu ────────────────────────────────────────────────────────────
+(function () {
+    const menu = document.getElementById('ctx-menu');
+
+    function showMenu(x, y, items) {
+        menu.innerHTML = '';
+        items.forEach(item => {
+            if (item === '-') {
+                const sep = document.createElement('div');
+                sep.className = 'ctx-separator';
+                menu.appendChild(sep);
+                return;
+            }
+            const btn = document.createElement('button');
+            btn.className = 'ctx-item' + (item.danger ? ' danger' : '');
+            btn.textContent = item.label + (item.checked ? '  ✓' : '');
+            btn.disabled = !!item.disabled;
+            btn.addEventListener('click', function () { hideMenu(); item.fn(); });
+            menu.appendChild(btn);
+        });
+
+        menu.classList.add('visible');
+
+        // Keep within viewport
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const mw = 170, mh = menu.scrollHeight;
+        menu.style.left = (x + mw > vw ? vw - mw - 4 : x) + 'px';
+        menu.style.top  = (y + mh > vh ? vh - mh - 4 : y) + 'px';
+    }
+
+    function hideMenu() { menu.classList.remove('visible'); }
+
+
+
+    document.getElementById('canvas-container').addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        const pt = getCanvasCoordinates(e.clientX, e.clientY);
+        const r = HIT_RADIUS / scale;
+
+        // Hit-test: same priority as pointerdown
+        let hit = false;
+        for (let i = customTexts.length - 1; i >= 0; i--) {
+            if (isHitText(customTexts[i], pt.x, pt.y)) {
+                selectedElement = { type: 'text', index: i };
+                requestRedraw(); updateUI();
+                hit = true; break;
+            }
+        }
+        if (!hit) for (let i = areas.length - 1; i >= 0; i--) {
+            if (isPointInPolygon(pt, areas[i].points)) {
+                selectedElement = { type: 'area', index: i };
+                requestRedraw(); updateUI();
+                hit = true; break;
+            }
+        }
+        if (!hit) for (let i = angles.length - 1; i >= 0; i--) {
+            const label = getAngleLabelPoint(angles[i]);
+            if (dist(label.x, label.y, pt.x, pt.y) < r) {
+                selectedElement = { type: 'angle', index: i };
+                requestRedraw(); updateUI();
+                hit = true; break;
+            }
+        }
+        if (!hit) for (let i = 0; i < lines.length; i++) {
+            if (dist(lines[i].x1, lines[i].y1, pt.x, pt.y) < r ||
+                dist(lines[i].x2, lines[i].y2, pt.x, pt.y) < r ||
+                distanceToSegment(pt, lines[i]) < r) {
+                selectedElement = { type: 'line', index: i };
+                requestRedraw(); updateUI();
+                hit = true; break;
+            }
+        }
+
+        if (hit) {
+            const items = [
+                { label: '🗑️ Delete', fn: deleteSelected, danger: true }
+            ];
+            if (selectedElement && selectedElement.type === 'line' && selectedElement.index !== 0) {
+                items.push('-');
+                items.push({ label: '📐 Use as scale', fn: useSelectedAsScale });
+            }
+            showMenu(e.clientX, e.clientY, items);
+        } else {
+            showMenu(e.clientX, e.clientY, [
+                { label: '🖱️ Pointer mode', fn: togglePointerMode, checked: pointerMode },
+                '-',
+                { label: '↩ Undo', fn: performUndo, disabled: undoStack.length <= 1 },
+                { label: '↪ Redo', fn: performRedo, disabled: redoStack.length === 0 },
+                '-',
+                { label: '⤢ Fit to window', fn: fitToScreen }
+            ]);
+        }
+    });
+
+    // Close on click outside the menu
+    document.addEventListener('click', function (e) {
+        if (!menu.contains(e.target)) hideMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hideMenu();
+    });
+}());
+
+</script>
+
+</body>
+</html>
